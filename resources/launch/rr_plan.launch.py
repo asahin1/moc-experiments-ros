@@ -112,7 +112,8 @@ def generate_launch_description():
                             ]
                         ),
                         launch_arguments=robot_config_file_launch_arg
-                        + config_file_launch_arg,
+                        + config_file_launch_arg
+                        + combined_robot_names_launch_arg,
                     ),
                 ]
             )
