@@ -1,0 +1,9 @@
+<library path="robot_selector_rviz">
+  <class
+    type="robot_selector_rviz::RobotSelectorPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Panel to select active robot for click-based planner
+    </description>
+  </class>
+</library>

@@ -1,0 +1,5 @@
+cable_plan_executor:
+  ros__parameters:
+    plan_filepath: "resources/data/action_plan_draft.json"
+    skip_hitches: False
+    action_server_timeout: 5.0

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "planner-adapter"
+version = "0.1.0"
+description = "Offline post-processing adapter for high-level planner outputs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+authors = [
+    {name = "Alp Sahin"}
+]
+
+dependencies = [
+    "numpy"
+]
+
+[project.scripts]
+planner-adapter = "planner_adapter.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["planner_adapter*"]

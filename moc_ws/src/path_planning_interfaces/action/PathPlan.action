@@ -1,0 +1,12 @@
+# Goal
+string robot_name
+geometry_msgs/Point goal
+string other_robot_name
+int8 h_sig
+---
+# Result
+bool success
+string message
+geometry_msgs/Point[] path
+---
+# Feedback

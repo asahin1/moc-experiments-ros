@@ -1,0 +1,21 @@
+# Build
+*_ws/.cache
+*_ws/build/
+*_ws/install/
+*_ws/log/
+
+# Python
+*.pyc
+/.venv
+*.egg-info/
+__pycache__/
+
+# Config
+/.vscode
+
+# Resource
+data/
+maps/
+bags/
+logs/
+params/

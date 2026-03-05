@@ -1,0 +1,16 @@
+path_planner:
+  ros__parameters:
+    map_yaml_filepath: "resources/maps/rr_s4.yaml"
+    target_frame: "map"
+    tf_timeout: 3.0
+    inter_robot_collision_check_factor: 2.5
+    image_coords_scale: 100.0
+    robot_push_scale_default: 1.0
+    robot_push_scale_step: 0.1
+    robot_push_scale_max_attempts: 20
+    boundary_push_scale_default: 1.0
+    boundary_push_scale_step: 0.5
+    boundary_push_scale_max_attempts: 3
+    obstacle_push_scale_default: 1.0
+    obstacle_push_scale_step: 0.5
+    obstacle_push_scale_max_attempts: 3

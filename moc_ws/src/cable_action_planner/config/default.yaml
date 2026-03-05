@@ -1,0 +1,16 @@
+cable_action_planner:
+  ros__parameters:
+    n_threads: 6
+    server_timeout: 5.0
+    tf_timeout: 3.0
+    move_last_wp_fallback_scale_default: 2.0
+    move_last_wp_fallback_scale_step: 0.5
+    move_last_wp_fallback_scale_max: 0.5
+    move_last_wp_fallback_attempts_max: 5
+    hitch_circle_fallback_default: 0.5
+    hitch_circle_fallback_step: 0.1
+    hitch_circle_fallback_max_attempts: 5
+    hitch_move_away_fallback_scale_default: 2.0
+    hitch_move_away_fallback_scale_step: 0.5
+    hitch_move_away_fallback_scale_max: 1.0
+    hitch_move_away_fallback_attempts_max: 10

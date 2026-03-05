@@ -1,0 +1,12 @@
+feedback_linearization_controller:
+  ros__parameters:
+    control_frequency: 20
+    target_frame: "map"
+    d_epsilon: 0.1
+    angle_epsilon: 0.6
+    lookahead_distance: 0.3
+    max_linear_vel: 0.5
+    max_rotational_vel: 0.6
+    n_spline_samples: 100
+    lookahead_search_ahead: 1.0
+    lookahead_search_behind: 0.2

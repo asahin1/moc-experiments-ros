@@ -1,0 +1,4 @@
+car_model:
+  ros__parameters:
+    model_rate: 10
+    init_pose: [-2.0,1.0,0.0]

@@ -1,0 +1,4 @@
+tf2_broadcaster:
+  ros__parameters:
+    tracked_rigid_bodies: '{521: "sub1", 522: "sub2", 523: "sub3", 524: "sub4", 525: "sub5", 528: "sub8"}'
+    # tracked_rigid_bodies: '{521: "sub1", 528: "sub8", 525: "sub5"}'

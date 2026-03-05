@@ -1,0 +1,61 @@
+{
+  "name": "moc_ros2_vs",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "args": {
+      "USER": "ubuntu",
+      "UID": "1000",
+      "GID": "1000",
+      "WORKSPACE_NAME": "moc_ws"
+    }
+  },
+  "workspaceFolder": "/home/ubuntu/work",
+  "runArgs": [
+    "--network=host",
+    "--ipc=host",
+    // X11 (Linux/Xorg). If you use Wayland, adjust as needed.
+    "-e",
+    "DISPLAY=${localEnv:DISPLAY}",
+    "-v",
+    "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/home/ubuntu/work/,type=bind"
+  ],
+  "remoteUser": "ubuntu",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ranch-hand-robotics.rde-ros-2",
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        // Prefer clangd for C++ completion
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "clangd.arguments": [
+          "--compile-commands-dir=${workspaceFolder}/omtp_ws/build"
+        ],
+        // Fallback for Microsoft C/C++
+        "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
+        // Python in-container
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        // Jazzy on Ubuntu 24.04 uses Python 3.12
+        // Humble on Ubuntu 22.04 uses Python 3.10
+        "python.analysis.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "${workspaceFolder}/omtp_ws/install/local/lib/python3.10/dist-packages"
+        ],
+        // Make CMake aware of ROS env
+        "cmake.environment": {
+          "AMENT_PREFIX_PATH": "/opt/ros/humble"
+        }
+      }
+    }
+  }
+}

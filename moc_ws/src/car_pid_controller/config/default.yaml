@@ -1,0 +1,8 @@
+car_pid_controller:
+  ros__parameters:
+    pid_rate: 20
+    target_frame: "map"
+    pid_linear_gains: [1.0, 0.0, 0.5]
+    pid_rotational_gains: [0.4, 0.0, 0.1]
+    d_epsilon: 0.1
+    angle_epsilon: 25.0

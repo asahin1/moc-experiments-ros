@@ -1,0 +1,53 @@
+/sub1/car_model:
+  ros__parameters:
+    # init_pose: [-1.21, -2.59, 0.0] # pp_test
+    # init_pose: [-1.21, 2.09, 0.0] # s2_m2 top
+    # init_pose: [-1.21, -2.09, 0.0] # s2_m2 bottom
+    # init_pose: [2.01, -2.09, 0.0] # s5_m3
+    # init_pose: [-1.21, 2.09, 0.0] # s6_m2 top
+    # init_pose: [-1.21, 2.09, 0.0] # s6_m2 bottom
+    init_pose: [-2.21, -2.39, 0.0] # s6_m2 bottom
+
+/sub2/car_model:
+  ros__parameters:
+    # init_pose: [-0.81, 1.59, 0.0] # s2_m2 top
+    # init_pose: [-0.81, -1.59, 0.0] # s2_m2 bottom
+    # init_pose: [1.41, -1.69, 0.0] # s5_m3
+    # init_pose: [-0.81, 1.59, 0.0] # s6_m2 top
+    init_pose: [-1.81, -1.49, 0.0] # s6_m2 bottom
+
+/sub3/car_model:
+  ros__parameters:
+    # init_pose: [0.31, 1.59, 0.0] # s2_m2 top
+    # init_pose: [0.31, -2.09, 0.0] # s2_m2 bottom
+    # init_pose: [0.21, -2.09, 0.0] # s5_m3
+    # init_pose: [0.81, 2.09, 0.0] # s6_m2 top
+    init_pose: [-0.19, -2.39, 0.0] # s6_m2 bottom
+
+/sub4/car_model:
+  ros__parameters:
+    # init_pose: [-0.81, 1.09, 0.0] # s2_m2 top
+    # init_pose: [-0.31, -1.59, 0.0] # s2_m2 bottom
+    # init_pose: [0.81, -1.69, 0.0] # s5_m3
+    # init_pose: [-0.31, 1.59, 0.0] # s6_m2 top
+    init_pose: [-1.31, -1.49, 0.0] # s6_m2 bottom
+
+/sub5/car_model:
+  ros__parameters:
+    # init_pose: [-2.59, 0.35, 0.0] # s5_m3
+    # init_pose: [3.19, 0.50, 0.0] # s6_m3
+    init_pose: [2.69, 0.00, 0.0] # s1_m3
+
+/sub6/car_model:
+  ros__parameters:
+    # init_pose: [-2.39, 0.35, 0.0] # s5_m3
+    init_pose: [2.45, 0.50, 0.0] # s6_m3
+    init_pose: [1.95, 0.00, 0.0] # s6_m3
+
+/sub7/car_model:
+  ros__parameters:
+    init_pose: [0.0, 0.0, 0.0] #
+
+/sub8/car_model:
+  ros__parameters:
+    init_pose: [0.0, 0.0, 0.0] #

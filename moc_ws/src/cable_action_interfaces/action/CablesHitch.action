@@ -1,0 +1,15 @@
+#goal definition
+uint32 cable_id1
+uint32 cable_id2
+geometry_msgs/Point exit_point1
+geometry_msgs/Point exit_point2
+uint8 cable_end1
+uint8 cable_end2
+bool is_1last
+bool is_2last
+geometry_msgs/Point vertex_coords
+---
+#result definition
+---
+#feedback definition
+uint32 current_hitch_step

@@ -1,0 +1,19 @@
+setups:
+  real_robots:
+    first_end_robot_names:
+      - sub2
+      - sub4
+      - sub1
+    last_end_robot_names:
+      - sub5
+      - sub8
+      - sub3
+  simulation:
+    first_end_robot_names:
+      - sub1
+      - sub3
+      - sub5
+    last_end_robot_names:
+      - sub2
+      - sub4
+      - sub6

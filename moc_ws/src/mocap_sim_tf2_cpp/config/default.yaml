@@ -1,0 +1,4 @@
+mocap_sim_tf2:
+  ros__parameters:
+    noise_mean: 0.0
+    noise_stddev: 0.001
