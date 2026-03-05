@@ -1,5 +1,6 @@
-# omtp-ros2-rr
-A ROS2 workspace and resources for performing OMTP outputs in simulation and on real robots.
+# moc-experiments-ros2
+
+A ROS2 workspace for performing MOCP outputs in simulation and on real robots.
 
 ## Docker-based workflow
 
@@ -10,11 +11,13 @@ A ROS2 workspace and resources for performing OMTP outputs in simulation and on 
 ```
 
 ### To run the container
+
 ```bash
 ./bin/run_container.sh
 ```
 
 ### To start a new shell inside the container
+
 ```bash
 ./bin/shell_container.sh
 ```
@@ -24,11 +27,13 @@ A ROS2 workspace and resources for performing OMTP outputs in simulation and on 
 ### Simulation
 
 Run the following launch file to create an interactive environment with simulated robots that can be assigned targets via clicking on rviz2:
+
 ```bash
 ros2 launch resources/launch/sim_click.launch.py
 ```
 
 Run the following launch file to make robots execute planned trajectories in simulation:
+
 ```bash
 ros2 launch resources/launch/sim_plan.launch.py
 ```
@@ -36,11 +41,13 @@ ros2 launch resources/launch/sim_plan.launch.py
 ### Real-Robot
 
 Run the following launch file to create an interactive environment that visualizes the real robots which can also be assigned targets via clicking on rviz2:
+
 ```bash
 ros2 launch resources/launch/rr_click.launch.py
 ```
 
 Run the following launch file to make real robots execute planned trajectories:
+
 ```bash
 ros2 launch resources/launch/rr_plan.launch.py
 ```
