@@ -8,7 +8,15 @@ int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
   try {
     auto node = std::make_shared<click_planner::ClickPlanner>();
-    rclcpp::spin(node);
+    node->initialize();
+
+    rclcpp::executors::MultiThreadedExecutor executor(
+        rclcpp::ExecutorOptions(),
+        /*number_of_threads=*/node->get_n_threads());
+
+    executor.add_node(node);
+    executor.spin();
+    // rclcpp::spin(node);
   } catch (const std::exception &e) {
     RCLCPP_FATAL(rclcpp::get_logger("rclcpp"), "Unhandled exception: %s",
                  e.what());

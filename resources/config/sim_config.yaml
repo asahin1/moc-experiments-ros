@@ -17,7 +17,6 @@ cable_action_planner:
     n_threads: 4
     server_timeout: 5.0
     tf_timeout: 3.0
-    path_planner_timeout: 7.0
     move_last_wp_fallback_scale_default: 2.0
     move_last_wp_fallback_scale_step: 0.5
     move_last_wp_fallback_scale_max: 0.5
@@ -64,6 +63,7 @@ map_server:
     robot_height: 0.05
     robot_color: [0.1, 0.4, 1.0, 1.0]
     selected_robot_color: [1.0, 0.4, 0.1, 1.0]
+    path_planner_timeout: 7.0
     control_frequency: 20
     d_epsilon: 0.1
     angle_epsilon: 0.6

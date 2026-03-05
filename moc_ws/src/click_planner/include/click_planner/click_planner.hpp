@@ -14,13 +14,15 @@
 
 // Local messages=
 #include <navigation_action_interfaces/action/follow_path.hpp>
-#include <path_planning_interfaces/srv/path_plan.hpp>
+#include <path_planning_interfaces/action/path_plan.hpp>
 #include <std_msgs/msg/string.hpp>
 
 namespace click_planner {
 class ClickPlanner : public rclcpp::Node {
 public:
-  using PathPlanningService = path_planning_interfaces::srv::PathPlan;
+  using PathPlanningAction = path_planning_interfaces::action::PathPlan;
+  using GoalHandlePathPlan =
+      rclcpp_action::ClientGoalHandle<PathPlanningAction>;
 
   using FollowPathAction = navigation_action_interfaces::action::FollowPath;
   using GoalHandleFollowPath =
@@ -28,15 +30,19 @@ public:
 
   ClickPlanner();
   void initialize();
+  int get_n_threads() const;
 
 private:
   // Parameters
+  int n_threads_;
   std::vector<std::string> robot_names_;
   std::string selected_robot_;
   double server_timeout_duration_;
   double tf_timeout_duration_;
   std::string target_frame_;
   double robot_radius_;
+
+  double path_planning_timeout_duration_;
 
   // tf
   std::unique_ptr<robot_utils::tf::TfListenerWrapper> tf_wrapper_;
@@ -50,7 +56,8 @@ private:
       selected_robot_sub_ptr_;
 
   // Service Clients
-  rclcpp::Client<PathPlanningService>::SharedPtr path_planning_client_ptr_;
+  rclcpp_action::Client<PathPlanningAction>::SharedPtr
+      path_planning_client_ptr_;
 
   // Action Clients
   std::unordered_map<std::string,
@@ -63,25 +70,13 @@ private:
   // Clicked point callback
   void click_callback(const geometry_msgs::msg::PointStamped &msg);
 
-  void path_planning_response_cb(
-      rclcpp::Client<PathPlanningService>::SharedFuture future,
-      const std::string &robot_name);
-
   FollowPathAction::Goal create_follow_path_action_goal(
       const std::vector<geometry_msgs::msg::Point> &path);
-
-  void follow_path_goal_response_callback(
-      const GoalHandleFollowPath::SharedPtr &fp_goal_handle,
-      const std::string &robot_name);
 
   void follow_path_feedback_callback(
       GoalHandleFollowPath::SharedPtr,
       const std::shared_ptr<const FollowPathAction::Feedback> feedback,
       const std::string &robot_name);
-
-  void
-  follow_path_result_callback(const GoalHandleFollowPath::WrappedResult &result,
-                              const std::string &robot_name);
 };
 } // namespace click_planner
 
