@@ -39,7 +39,7 @@
         // Prefer clangd for C++ completion
         "C_Cpp.intelliSenseEngine": "disabled",
         "clangd.arguments": [
-          "--compile-commands-dir=${workspaceFolder}/omtp_ws/build"
+          "--compile-commands-dir=${workspaceFolder}/moc_ws/build"
         ],
         // Fallback for Microsoft C/C++
         "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
@@ -49,7 +49,7 @@
         // Humble on Ubuntu 22.04 uses Python 3.10
         "python.analysis.extraPaths": [
           "/opt/ros/humble/lib/python3.10/site-packages",
-          "${workspaceFolder}/omtp_ws/install/local/lib/python3.10/dist-packages"
+          "${workspaceFolder}/moc_ws/install/local/lib/python3.10/dist-packages"
         ],
         // Make CMake aware of ROS env
         "cmake.environment": {
