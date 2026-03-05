@@ -1,4 +1,4 @@
-# moc-experiments-ros2
+# moc-experiments-ros
 
 A ROS2 workspace for performing MOCP outputs in simulation and on real robots.
 
