@@ -36,6 +36,7 @@ def generate_launch_description():
     map_node = Node(
         package="nav2_map_server",
         executable="map_server",
+        name="map_server",
         parameters=[config],
     )
     rviz_node = Node(
@@ -43,10 +44,16 @@ def generate_launch_description():
         executable="rviz2",
         arguments=["-d", rviz_file],
     )
-    lifecycle_bringup = Node(
-        package="nav2_util",
-        executable="lifecycle_bringup",
-        arguments=["map_server"],
+
+    lifecycle_manager = Node(
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="lifecycle_manager_navigation",
+        output="screen",
+        parameters=[
+            {"autostart": True},
+            {"node_names": ["map_server"]},  # List all nodes to manage here
+        ],
     )
     return LaunchDescription(
         [
@@ -60,11 +67,6 @@ def generate_launch_description():
                     on_start=[map_node],
                 )
             ),
-            RegisterEventHandler(
-                OnProcessStart(
-                    target_action=map_node,
-                    on_start=[lifecycle_bringup],
-                )
-            ),
+            lifecycle_manager,
         ]
     )
