@@ -256,51 +256,53 @@ PathPlanner::PathPlanner() : Node("path_planner") {
       "resources/maps/" + map_yaml["image"].as<std::string>();
   RCLCPP_INFO(this->get_logger(), "Loading map image from: %s",
               map_img_filepath.c_str());
-
-  planning_graph_.robot_radius = robot_radius_ * image_coords_scale_;
-  planning_graph_.inter_robot_collision_check_factor =
+  base_planning_graph_.robot_radius = robot_radius_ * image_coords_scale_;
+  base_planning_graph_.inter_robot_collision_check_factor =
       inter_robot_collision_check_factor_;
   ImageMap<int> searchMap;
-  searchMap.loadMap(map_img_filepath, true,
-                    planning_graph_.robot_radius); // inflate via Minkowski sum
+  searchMap.loadMap(
+      map_img_filepath, true,
+      base_planning_graph_.robot_radius); // inflate via Minkowski sum
   // searchMap.initializePlot(1);
   // searchMap.renderDisplay(0);
-  planning_graph_.map = searchMap;
-  planning_graph_.robot_push_scale_default = robot_push_scale_default_;
-  planning_graph_.robot_push_scale_step = robot_push_scale_step_;
-  planning_graph_.robot_push_scale_max_attempts =
+  base_planning_graph_.map = searchMap;
+  base_planning_graph_.robot_push_scale_default = robot_push_scale_default_;
+  base_planning_graph_.robot_push_scale_step = robot_push_scale_step_;
+  base_planning_graph_.robot_push_scale_max_attempts =
       robot_push_scale_max_attempts_;
-  planning_graph_.boundary_push_scale_default = boundary_push_scale_default_;
-  planning_graph_.boundary_push_scale_step = boundary_push_scale_step_;
-  planning_graph_.boundary_push_scale_max_attempts =
+  base_planning_graph_.boundary_push_scale_default =
+      boundary_push_scale_default_;
+  base_planning_graph_.boundary_push_scale_step = boundary_push_scale_step_;
+  base_planning_graph_.boundary_push_scale_max_attempts =
       boundary_push_scale_max_attempts_;
-  planning_graph_.obstacle_push_scale_default = obstacle_push_scale_default_;
-  planning_graph_.obstacle_push_scale_step = obstacle_push_scale_step_;
-  planning_graph_.obstacle_push_scale_max_attempts =
+  base_planning_graph_.obstacle_push_scale_default =
+      obstacle_push_scale_default_;
+  base_planning_graph_.obstacle_push_scale_step = obstacle_push_scale_step_;
+  base_planning_graph_.obstacle_push_scale_max_attempts =
       obstacle_push_scale_max_attempts_;
 
   RCLCPP_INFO(this->get_logger(),
               "Planning graph - robot_push_scale_default: %f",
-              planning_graph_.robot_push_scale_default);
+              base_planning_graph_.robot_push_scale_default);
 
   RCLCPP_INFO(this->get_logger(), "Planning graph - robot_push_scale_step: %f",
-              planning_graph_.robot_push_scale_step);
+              base_planning_graph_.robot_push_scale_step);
 
   RCLCPP_INFO(this->get_logger(),
               "Planning graph - robot_push_scale_max_attempts: %d",
-              planning_graph_.robot_push_scale_max_attempts);
+              base_planning_graph_.robot_push_scale_max_attempts);
 
   RCLCPP_INFO(this->get_logger(),
               "Planning graph - boundary_push_scale_default: %f",
-              planning_graph_.boundary_push_scale_default);
+              base_planning_graph_.boundary_push_scale_default);
 
   RCLCPP_INFO(this->get_logger(),
               "Planning graph - boundary_push_scale_step: %f",
-              planning_graph_.boundary_push_scale_step);
+              base_planning_graph_.boundary_push_scale_step);
 
   RCLCPP_INFO(this->get_logger(),
               "Planning graph - boundary_push_scale_max_attempts: %d",
-              planning_graph_.boundary_push_scale_max_attempts);
+              base_planning_graph_.boundary_push_scale_max_attempts);
 
   for (size_t i{0}; i < robot_names_.size(); ++i) {
     robot_path_pub_ptrs_.insert(
@@ -310,6 +312,7 @@ PathPlanner::PathPlanner() : Node("path_planner") {
         {robot_names_[i],
          this->create_publisher<geometry_msgs::msg::PointStamped>(
              robot_names_[i] + "/path_goal", 10)});
+    planning_graphs_.insert({robot_names_[i], base_planning_graph_});
   }
 
   path_planning_server_ptr_ = rclcpp_action::create_server<PathPlanningAction>(
@@ -486,7 +489,7 @@ bool PathPlanner::prep_planning_problem(
                    robot_utils::log::get_robot_prefix(robot_name).c_str(),
                    orn.c_str(), other_robot_pose.position.x,
                    other_robot_pose.position.y);
-      planning_graph_.other_robot_pose_h_sig =
+      planning_graphs_[robot_name].other_robot_pose_h_sig =
           transform_real_to_image(other_robot_pose);
     } else {
       robot_utils::geometry::Coords<double> other_robot_pos;
@@ -521,10 +524,11 @@ bool PathPlanner::prep_planning_problem(
                  tp.y);
   }
 
-  planning_graph_.other_robot_pos_collision = other_robot_poses_transformed;
+  planning_graphs_[robot_name].other_robot_pos_collision =
+      other_robot_poses_transformed;
   RCLCPP_DEBUG(this->get_logger(), "%s Planning with %zu other robots.",
                robot_utils::log::get_robot_prefix(robot_name).c_str(),
-               planning_graph_.other_robot_pos_collision.size());
+               planning_graphs_[robot_name].other_robot_pos_collision.size());
 
   robot_utils::geometry::Coords<int> start = planning_robot_pose_transformed;
   robot_utils::geometry::Coords<int> goal =
@@ -532,8 +536,8 @@ bool PathPlanner::prep_planning_problem(
 
   // Start point is inside obstacle (or other robot) or out of image
   try {
-    start_coords = planning_graph_.get_valid_coord(start);
-    goal_coords = planning_graph_.get_valid_coord(goal);
+    start_coords = planning_graphs_[robot_name].get_valid_coord(start);
+    goal_coords = planning_graphs_[robot_name].get_valid_coord(goal);
   } catch (const std::exception &ex) {
     RCLCPP_ERROR(
         this->get_logger(),
@@ -575,7 +579,7 @@ bool PathPlanner::plan_path(
 
   auto [res, _] =
       custom_mpl::search::algorithms::astar<robot_utils::geometry::Coords<int>>(
-          planning_graph_, start, is_goal, euclidean_heuristic,
+          planning_graphs_[robot_name], start, is_goal, euclidean_heuristic,
           pretermination_func, custom_mpl::search::policies::ClosedNone{},
           custom_mpl::search::policies::ReopenForbid{});
 
@@ -619,7 +623,8 @@ bool PathPlanner::plan_homotopy_path(
 
   HPlanningNode h_start;
   h_start.coords = start;
-  h_start.h_sig.resize(planning_graph_.map.parsed_map.repPts.size() + 1, 0);
+  h_start.h_sig.resize(
+      planning_graphs_[robot_name].map.parsed_map.repPts.size() + 1, 0);
   HPlanningNode h_goal;
   h_goal.coords = goal;
   h_goal.h_sig = h_start.h_sig;
@@ -638,7 +643,7 @@ bool PathPlanner::plan_homotopy_path(
       h_start.h_sig.back(), goal.x, goal.y, h_goal.h_sig.back());
 
   auto [res, _] = custom_mpl::search::algorithms::astar<HPlanningNode>(
-      planning_graph_, h_start, is_goal, euclidean_heuristic,
+      planning_graphs_[robot_name], h_start, is_goal, euclidean_heuristic,
       pretermination_func, custom_mpl::search::policies::ClosedNone{},
       custom_mpl::search::policies::ReopenForbid{});
 
@@ -671,7 +676,7 @@ robot_utils::geometry::Pose2D PathPlanner::transform_real_to_image(
     const robot_utils::geometry::Pose2D &pose) const {
   robot_utils::geometry::Pose2D out;
   out.position.x = pose.position.x * image_coords_scale_;
-  out.position.y = planning_graph_.map.parsed_map.height() -
+  out.position.y = base_planning_graph_.map.parsed_map.height() -
                    pose.position.y * image_coords_scale_;
   out.heading.x = pose.heading.x;
   out.heading.y = -pose.heading.y;
@@ -684,7 +689,7 @@ PathPlanner::transform_real_to_image(
     const robot_utils::geometry::Coords<double> &pos) const {
   robot_utils::geometry::Coords<OutCoordType> out;
   out.x = OutCoordType(pos.x * image_coords_scale_);
-  out.y = planning_graph_.map.parsed_map.height() -
+  out.y = base_planning_graph_.map.parsed_map.height() -
           OutCoordType(pos.y * image_coords_scale_);
   return out;
 }
@@ -693,7 +698,8 @@ robot_utils::geometry::Coords<double> PathPlanner::transform_image_to_real(
     const robot_utils::geometry::Coords<int> &pos) const {
   robot_utils::geometry::Coords<double> out;
   out.x = static_cast<double>(pos.x) / image_coords_scale_;
-  out.y = static_cast<double>(planning_graph_.map.parsed_map.height() - pos.y) /
+  out.y = static_cast<double>(base_planning_graph_.map.parsed_map.height() -
+                              pos.y) /
           image_coords_scale_;
   return out;
 }

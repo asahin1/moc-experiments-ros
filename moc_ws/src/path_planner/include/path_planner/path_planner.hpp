@@ -144,7 +144,8 @@ private:
       robot_path_goal_pub_ptrs_;
 
   // Planning variables
-  PlanningGraph planning_graph_;
+  std::unordered_map<std::string, PlanningGraph> planning_graphs_;
+  PlanningGraph base_planning_graph_;
 
   // Action Handlers
   rclcpp_action::GoalResponse
