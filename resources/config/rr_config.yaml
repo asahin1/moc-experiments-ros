@@ -36,47 +36,41 @@ cable_action_planner:
 
 path_planner:
   ros__parameters:
-    map_yaml_filepath: "resources/maps/rr_s2.yaml"
-    # map_yaml_filepath: "resources/maps/rr_s5.yaml"
-    # map_yaml_filepath: "resources/maps/rr_s6.yaml"
+    n_threads: 4
+    map_yaml_filepath: "resources/maps/rr_s1.yaml"
     tf_timeout: 10.0
     inter_robot_collision_check_factor: 2.6
     image_coords_scale: 100.0
     robot_push_scale_default: 1.0
     robot_push_scale_step: 0.1
     robot_push_scale_max_attempts: 20
-    boundary_push_scale_default: 1.0
+    boundary_push_scale_default: 0.0
     boundary_push_scale_step: 0.1
-    boundary_push_scale_max_attempts: 3
+    boundary_push_scale_max_attempts: 10
     obstacle_push_scale_default: 1.0
     obstacle_push_scale_step: 0.5
     obstacle_push_scale_max_attempts: 3
 
 map_server:
   ros__parameters:
-    yaml_filename: "resources/maps/rr_s2.yaml"
-    # yaml_filename: "resources/maps/rr_s5.yaml"
-    # yaml_filename: "resources/maps/rr_s6.yaml"
+    yaml_filename: "resources/maps/rr_s1.yaml"
     frame_id: "map"
 
 /**:
   ros__parameters:
-    target_frame: "map"
-    robot_radius: 0.15
-    robot_height: 0.05
-    robot_color: [0.1, 0.4, 1.0, 1.0]
-    selected_robot_color: [1.0, 0.4, 0.1, 1.0]
-    control_frequency: 20
-    # pid_linear_gains: [0.8, 0.0, 0.08]
-    # pid_rotational_gains: [0.6, 0.0, 0.06]
-    d_epsilon: 0.1
-    angle_epsilon: 0.6
-    lookahead_distance: 0.3
-    max_linear_vel: 0.5
-    max_rotational_vel: 0.6
-    lookahead_distance: 0.3
-    n_spline_samples: 100
-    lookahead_search_ahead: 1.0
-    lookahead_search_behind: 0.2
-    collision_radius: 0.6
-    collision_break_factor: 0.76
+    target_frame: "map" # feedback_lin_ctrl, robot_visualizer, cable_action_planner, path_planner
+    robot_radius: 0.15 # robot_visualizer, cable_action_planner, path_planner
+    robot_height: 0.05 # robot_visualizer
+    robot_color: [0.1, 0.4, 1.0, 1.0] # robot_visualizer
+    selected_robot_color: [1.0, 0.4, 0.1, 1.0] # robot_visualizer
+    control_frequency: 20 # feedback_lin_ctrl
+    d_epsilon: 0.1 # feedback_lin_ctrl
+    angle_epsilon: 0.6 # feedback_lin_ctrl
+    lookahead_distance: 0.3 # feedback_lin_ctrl
+    max_linear_vel: 0.5 # feedback_lin_ctrl
+    max_rotational_vel: 0.6 # feedback_lin_ctrl
+    n_spline_samples: 100 # feedback_lin_ctrl
+    lookahead_search_ahead: 1.0 # feedback_lin_ctrl
+    lookahead_search_behind: 0.2 # feedback_lin_ctrl
+    collision_radius: 0.6 # feedback_lin_ctrl
+    collision_break_factor: 0.76 # feedback_lin_ctrl
