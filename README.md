@@ -29,6 +29,16 @@ Run inside the container:
 cd moc_ws
 colcon build
 ```
+
+## Parameter Setup
+
+1. List robot names in (front and rear end robots separately): `resources/config/robot_names.yaml`.
+2. Set robot specific parameters in `resources/config/robot_configs.yaml`. Initial robot poses are needed at the least for the `car_model` in simulation.
+3. Set run specific parameters in `resources/config/${rr or sim}_config.yaml`.
+4. Make sure map parameters are correctly set in `resources/maps/${map_name}.yaml`.
+5. TODO
+
+
 ## Running
 
 Source the ros2 workspace:
