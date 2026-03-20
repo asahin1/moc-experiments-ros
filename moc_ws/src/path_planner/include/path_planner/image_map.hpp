@@ -25,6 +25,9 @@ public:
   robot_utils::geometry::Coords<CoordType>
   push_inside_boundary(const robot_utils::geometry::Coords<CoordType> &coords,
                        double d) const;
+  robot_utils::geometry::Coords<CoordType>
+  push_along_boundary(const robot_utils::geometry::Coords<CoordType> &coords,
+                      double d) const;
   bool
   isObstacleFree(const robot_utils::geometry::Coords<CoordType> &coords) const;
   std::unordered_map<robot_utils::geometry::Coords<CoordType>, double>
@@ -136,6 +139,31 @@ ImageMap<CoordType>::push_inside_boundary(
       break;
     case MapBoundary::BOTTOM:
       new_coords.y = parsed_map.map.rows - 1 - d;
+      break;
+    }
+  }
+  return new_coords;
+}
+
+template <typename CoordType>
+robot_utils::geometry::Coords<CoordType>
+ImageMap<CoordType>::push_along_boundary(
+    const robot_utils::geometry::Coords<CoordType> &coords, double d) const {
+  robot_utils::geometry::Coords<CoordType> new_coords = coords;
+  auto violations = get_boundary_violations(coords);
+  for (const auto &violation : violations) {
+    switch (violation) {
+    case MapBoundary::LEFT:
+      new_coords.y -= d;
+      break;
+    case MapBoundary::TOP:
+      new_coords.x += d;
+      break;
+    case MapBoundary::RIGHT:
+      new_coords.y += d;
+      break;
+    case MapBoundary::BOTTOM:
+      new_coords.x -= d;
       break;
     }
   }

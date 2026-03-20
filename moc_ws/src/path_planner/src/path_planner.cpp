@@ -65,6 +65,11 @@ robot_utils::geometry::Coords<int> PlanningGraph::push_inside_boundaries(
   return map.push_inside_boundary(n, d);
 }
 
+robot_utils::geometry::Coords<int> PlanningGraph::push_along_boundaries(
+    const robot_utils::geometry::Coords<int> &n, double d) const {
+  return map.push_along_boundary(n, d);
+}
+
 robot_utils::geometry::Coords<int> PlanningGraph::get_valid_coord(
     const robot_utils::geometry::Coords<int> &n) const {
   robot_utils::geometry::Coords<int> valid_n = n;
@@ -92,20 +97,28 @@ robot_utils::geometry::Coords<int> PlanningGraph::get_valid_coord(
   }
   // Handle boundary violations
   push_attempts = 0;
+  auto valid_before_push_inside = valid_n;
   while (!within_map_boundaries(valid_n)) {
     valid_n = push_inside_boundaries(
         valid_n, robot_radius * (boundary_push_scale_default +
                                  push_attempts * boundary_push_scale_step));
     other_robots_in_collision = get_robot_idx_in_collision(valid_n);
     if (!other_robots_in_collision.empty()) {
-      throw std::runtime_error(
-          "Cannot find a valid planning point that is "
-          "within boundaries and without robot collision.");
+      // Push along the boundary
+      valid_n = push_along_boundaries(
+          valid_before_push_inside,
+          robot_radius *
+              (boundary_push_scale_default +
+               boundary_push_scale_max_attempts * boundary_push_scale_step));
     }
     push_attempts++;
     if (push_attempts == boundary_push_scale_max_attempts) {
-      throw std::runtime_error("Cannot find a valid planning point that is "
-                               "within map boundaries in max pushes.");
+      other_robots_in_collision = get_robot_idx_in_collision(valid_n);
+      if (!other_robots_in_collision.empty()) {
+        throw std::runtime_error(
+            "Cannot find a valid planning point that is "
+            "within boundaries and without robot collision within all pushes");
+      }
     }
   }
   // Handle obstacle collisions

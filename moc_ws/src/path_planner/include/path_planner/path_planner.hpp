@@ -78,6 +78,9 @@ struct PlanningGraph {
   push_inside_boundaries(const robot_utils::geometry::Coords<int> &n,
                          double d) const;
   robot_utils::geometry::Coords<int>
+  push_along_boundaries(const robot_utils::geometry::Coords<int> &n,
+                        double d) const;
+  robot_utils::geometry::Coords<int>
   get_valid_coord(const robot_utils::geometry::Coords<int> &n) const;
 
   bool
