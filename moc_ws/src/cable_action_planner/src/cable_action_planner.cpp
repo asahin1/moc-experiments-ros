@@ -619,21 +619,21 @@ void CableActionPlanner::execute_next_cables_interlace_step(
       if (reverse_circle) {
         moving_robot_name = robot2_name;
         robot_utils::geometry::Coords<double> v = exit_point2 - in_point2;
-        double scale = 1.0;
+        robot_utils::geometry::Coords<double> v_unit = v * (1 / v.length());
+        double scale = v.length();
         if (!goal->is_2last) {
-          scale = std::min(hitch_move_away_fallback_scale_max_,
-                           move_away_scale2 * robot_radius_ / v.length());
+          scale = std::min(v.length(), move_away_scale2 * robot_radius_);
         }
-        waypoint = in_point2 + v * scale;
+        waypoint = in_point2 + v_unit * scale;
       } else {
         moving_robot_name = robot1_name;
         robot_utils::geometry::Coords<double> v = exit_point1 - in_point1;
-        double scale = 1.0;
+        robot_utils::geometry::Coords<double> v_unit = v * (1 / v.length());
+        double scale = v.length();
         if (!goal->is_1last) {
-          scale = std::min(hitch_move_away_fallback_scale_max_,
-                           move_away_scale1 * robot_radius_ / v.length());
+          scale = std::min(v.length(), move_away_scale1 * robot_radius_);
         }
-        waypoint = in_point1 + v * scale;
+        waypoint = in_point1 + v_unit * scale;
       }
       break;
     }
@@ -641,21 +641,21 @@ void CableActionPlanner::execute_next_cables_interlace_step(
       if (reverse_circle) {
         moving_robot_name = robot1_name;
         robot_utils::geometry::Coords<double> v = exit_point1 - in_point1;
-        double scale = 1.0;
+        robot_utils::geometry::Coords<double> v_unit = v * (1 / v.length());
+        double scale = v.length();
         if (!goal->is_1last) {
-          scale = std::min(hitch_move_away_fallback_scale_max_,
-                           move_away_scale1 * robot_radius_ / v.length());
+          scale = std::min(v.length(), move_away_scale1 * robot_radius_);
         }
-        waypoint = in_point1 + v * scale;
+        waypoint = in_point1 + v_unit * scale;
       } else {
         moving_robot_name = robot2_name;
         robot_utils::geometry::Coords<double> v = exit_point2 - in_point2;
-        double scale = 1.0;
+        robot_utils::geometry::Coords<double> v_unit = v * (1 / v.length());
+        double scale = v.length();
         if (!goal->is_2last) {
-          scale = std::min(hitch_move_away_fallback_scale_max_,
-                           move_away_scale2 * robot_radius_ / v.length());
+          scale = std::min(v.length(), move_away_scale2 * robot_radius_);
         }
-        waypoint = in_point2 + v * scale;
+        waypoint = in_point2 + v_unit * scale;
       }
       break;
     }
