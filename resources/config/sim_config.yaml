@@ -3,6 +3,17 @@ mocap_sim_tf2:
     noise_mean: 0.0
     noise_stddev: 0.001
 
+static_tf_node:
+  ros__parameters:
+    x: -3.6
+    y: -2.4
+    z: 0.0
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+    frame_id: "world"
+    child_frame_id: "map"
+
 cable_plan_executor:
   ros__parameters:
     # plan_filepath: "resources/data/s2_m2.json"

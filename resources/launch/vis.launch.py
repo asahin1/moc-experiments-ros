@@ -1,9 +1,43 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessStart
 from launch_ros.actions import Node
+
+import yaml
+
+
+def create_static_tf_node(context):
+    # This resolves the LaunchConfiguration into an actual string path
+    config_path = LaunchConfiguration("config_file").perform(context)
+
+    with open(config_path, "r") as f:
+        params = yaml.safe_load(f)["static_tf_node"]["ros__parameters"]
+
+    node = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=[
+            "--x",
+            str(params["x"]),
+            "--y",
+            str(params["y"]),
+            "--z",
+            str(params["z"]),
+            "--yaw",
+            str(params["yaw"]),
+            "--pitch",
+            str(params["pitch"]),
+            "--roll",
+            str(params["roll"]),
+            "--frame-id",
+            params["frame_id"],
+            "--child-frame-id",
+            params["child_frame_id"],
+        ],
+    )
+    return [node]
 
 
 def generate_launch_description():
@@ -11,28 +45,7 @@ def generate_launch_description():
     rviz_file = LaunchConfiguration("rviz_file")
     config_file = DeclareLaunchArgument("config_file")
     config = LaunchConfiguration("config_file")
-    map_world_tf_node = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        arguments=[
-            "--x",
-            "-3.6",
-            "--y",
-            "-2.1",
-            "--z",
-            "0",
-            "--yaw",
-            "0",
-            "--pitch",
-            "0",
-            "--roll",
-            "0",
-            "--frame-id",
-            "world",
-            "--child-frame-id",
-            "map",
-        ],
-    )
+
     map_node = Node(
         package="nav2_map_server",
         executable="map_server",
@@ -59,7 +72,7 @@ def generate_launch_description():
         [
             rviz_file_arg,
             config_file,
-            map_world_tf_node,
+            OpaqueFunction(function=create_static_tf_node),
             rviz_node,
             RegisterEventHandler(
                 OnProcessStart(
