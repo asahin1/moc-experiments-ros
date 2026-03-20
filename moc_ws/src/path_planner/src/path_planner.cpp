@@ -138,7 +138,8 @@ robot_utils::geometry::Coords<int> PlanningGraph::get_valid_coord(
       int_coords.x = new_n.x;
       int_coords.y = new_n.y;
       if (get_robot_idx_in_collision(int_coords).empty() &&
-          within_map_boundaries(int_coords)) {
+          within_map_boundaries(int_coords) &&
+          !in_collision_with_obstacles(int_coords)) {
         valid_n = int_coords;
         return valid_n;
       }
