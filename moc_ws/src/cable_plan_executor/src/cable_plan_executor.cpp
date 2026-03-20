@@ -183,11 +183,18 @@ void CablePlanExecutor::load_plan() {
       if (!add_act) {
         continue;
       }
-      bool is_last_action =
-          (end == robot_utils::cable::CableEnd::First ||
-           i == plan.size() -
-                    1); // First end hitches should always move to the exit,
-                        // last end hitches only if they are the last act
+      // None of the plans between plan.begin()+i to plan.end has action type
+      // progress
+      bool is_last_progress = std::none_of(
+          plan.begin() + i, plan.end(), [](const nlohmann::basic_json<> act) {
+            std::string act_type_str = act["type"].get<std::string>();
+            char act_type_char = act_type_str[0];
+            robot_utils::cable::ActionType act_type =
+                robot_utils::cable::action_type_from_char(act_type_char);
+            return act_type == robot_utils::cable::ActionType::Progress;
+          });
+      bool is_first_end = end == robot_utils::cable::CableEnd::Rear;
+      bool is_last_action = (is_last_progress || is_first_end);
       robot_utils::cable::CableAction action{
           act_type, end, points, vertex_id, vertex_coord, is_last_action};
       cable_plan.push_back(action);
