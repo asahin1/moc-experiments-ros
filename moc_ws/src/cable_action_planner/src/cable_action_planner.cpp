@@ -1,5 +1,6 @@
 // Standard libraries
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -37,6 +38,8 @@ CableActionPlanner::CableActionPlanner() : Node("cable_action_planner") {
   tf_timeout_duration_ = this->declare_parameter<double>("tf_timeout", 5.0);
   path_planning_timeout_duration_ =
       this->declare_parameter<double>("path_planner_timeout", 5.0);
+  communication_timeout_duration_ =
+      this->declare_parameter<double>("communication_timeout", 5.0);
   target_frame_ = this->declare_parameter<std::string>(
       "target_frame", ""); // Follow path frame_id
 
@@ -335,7 +338,7 @@ void CableActionPlanner::execute_next_cable_progress_step(
     auto pp_goal_future =
         path_planning_client_ptr_->async_send_goal(request, send_goal_options);
 
-    if (pp_goal_future.wait_for(pp_communication_timeout_limit) !=
+    if (pp_goal_future.wait_for(communication_timeout_limit) !=
         std::future_status::ready) {
       RCLCPP_INFO(this->get_logger(),
                   "Timeout waiting for path planning request "
@@ -364,7 +367,7 @@ void CableActionPlanner::execute_next_cable_progress_step(
           "goal. Will apply fallback logic for cable progression action.");
       auto cancel_future =
           path_planning_client_ptr_->async_cancel_goal(pp_goal_handle);
-      if (cancel_future.wait_for(pp_communication_timeout_limit) ==
+      if (cancel_future.wait_for(communication_timeout_limit) ==
           std::future_status::ready) {
         auto cancel_response = cancel_future.get();
 
@@ -404,7 +407,7 @@ void CableActionPlanner::execute_next_cable_progress_step(
       auto fp_handle_future =
           follow_path_action_client_ptrs_[robot_name]->async_send_goal(
               action_goal, opts);
-      if (fp_handle_future.wait_for(fp_communication_timeout_limit) !=
+      if (fp_handle_future.wait_for(communication_timeout_limit) !=
           std::future_status::ready) {
         RCLCPP_INFO(this->get_logger(),
                     "Timeout waiting for follow path request "
