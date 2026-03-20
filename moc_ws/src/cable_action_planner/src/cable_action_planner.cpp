@@ -154,10 +154,10 @@ CableActionPlanner::~CableActionPlanner() {
 }
 
 void CableActionPlanner::initialize() {
-  RCLCPP_INFO(this->get_logger(), "Creating tf wrapper.");
+  RCLCPP_DEBUG(this->get_logger(), "Creating tf wrapper.");
   tf_wrapper_ = std::make_unique<robot_utils::tf::TfListenerWrapper>(
       this->shared_from_this());
-  RCLCPP_INFO(this->get_logger(), "tf wrapper created.");
+  RCLCPP_DEBUG(this->get_logger(), "tf wrapper created.");
 }
 
 int CableActionPlanner::get_n_threads() const { return n_threads_; }
@@ -330,27 +330,29 @@ void CableActionPlanner::execute_next_cable_progress_step(
     auto send_goal_options =
         rclcpp_action::Client<PathPlanningAction>::SendGoalOptions();
 
-    RCLCPP_INFO(this->get_logger(),
-                "%s Requesting path plan to waypoint (%zu/%zu)",
-                robot_utils::log::get_robot_prefix(robot_name).c_str(), index,
-                waypoints.size() - 1);
+    RCLCPP_DEBUG(this->get_logger(),
+                 "%s Requesting path plan to waypoint (%zu/%zu)",
+                 robot_utils::log::get_robot_prefix(robot_name).c_str(), index,
+                 waypoints.size() - 1);
 
     auto pp_goal_future =
         path_planning_client_ptr_->async_send_goal(request, send_goal_options);
 
     if (pp_goal_future.wait_for(communication_timeout_limit) !=
         std::future_status::ready) {
-      RCLCPP_INFO(this->get_logger(),
-                  "Timeout waiting for path planning request "
-                  "to be accepted. Aborting cable progression action");
+      RCLCPP_ERROR(this->get_logger(),
+                   "%s Timeout waiting for path planning request "
+                   "to be accepted. Aborting cable progression action",
+                   robot_utils::log::get_robot_prefix(robot_name).c_str());
       goal_handle->abort(result);
     }
 
     auto pp_goal_handle = pp_goal_future.get();
     if (!pp_goal_handle) {
-      RCLCPP_INFO(
-          this->get_logger(),
-          "Path planning request rejected. Aborting cable progression action");
+      RCLCPP_ERROR(this->get_logger(),
+                   "%s Path planning request rejected. Aborting cable "
+                   "progression action",
+                   robot_utils::log::get_robot_prefix(robot_name).c_str());
       goal_handle->abort(result);
     }
 
@@ -361,10 +363,11 @@ void CableActionPlanner::execute_next_cable_progress_step(
     GoalHandlePathPlan::WrappedResult pp_wrapped_result;
 
     if (status == std::future_status::timeout) {
-      RCLCPP_INFO(
+      RCLCPP_DEBUG(
           this->get_logger(),
-          "Timeout reached. Cancelling path planning "
-          "goal. Will apply fallback logic for cable progression action.");
+          "%s Timeout reached. Cancelling path planning "
+          "goal. Will apply fallback logic for cable progression action.",
+          robot_utils::log::get_robot_prefix(robot_name).c_str());
       auto cancel_future =
           path_planning_client_ptr_->async_cancel_goal(pp_goal_handle);
       if (cancel_future.wait_for(communication_timeout_limit) ==
@@ -374,17 +377,20 @@ void CableActionPlanner::execute_next_cable_progress_step(
         if (cancel_response->return_code !=
             action_msgs::srv::CancelGoal_Response::ERROR_NONE) {
           RCLCPP_WARN(this->get_logger(),
-                      "Path planning server rejected the cancel request!");
+                      "%s Path planning server rejected the cancel request!",
+                      robot_utils::log::get_robot_prefix(robot_name).c_str());
         } else {
-          RCLCPP_INFO(
-              this->get_logger(),
-              "Path planning server acknowledged cancel request. Waiting for "
-              "termination...");
+          RCLCPP_INFO(this->get_logger(),
+                      "%s Path planning server acknowledged cancel request. "
+                      "Waiting for "
+                      "termination...",
+                      robot_utils::log::get_robot_prefix(robot_name).c_str());
         }
       } else {
-        RCLCPP_ERROR(this->get_logger(),
-                     "Path planning server failed to acknowledge cancel "
-                     "request. It might be dead.");
+        RCLCPP_WARN(this->get_logger(),
+                    "%s Path planning server failed to acknowledge cancel "
+                    "request. It might be dead.",
+                    robot_utils::log::get_robot_prefix(robot_name).c_str());
       }
     } else if (status == std::future_status::ready) {
       pp_wrapped_result = result_future.get();
@@ -409,15 +415,18 @@ void CableActionPlanner::execute_next_cable_progress_step(
               action_goal, opts);
       if (fp_handle_future.wait_for(communication_timeout_limit) !=
           std::future_status::ready) {
-        RCLCPP_INFO(this->get_logger(),
-                    "Timeout waiting for follow path request "
-                    "to be accepted. Aborting cable progression action");
+        RCLCPP_ERROR(this->get_logger(),
+                     "%s Timeout waiting for follow path request "
+                     "to be accepted. Aborting cable progression action",
+                     robot_utils::log::get_robot_prefix(robot_name).c_str());
         goal_handle->abort(result);
       }
       auto fp_goal_handle = fp_handle_future.get();
       if (!fp_goal_handle) {
-        RCLCPP_INFO(this->get_logger(), "Follow path request rejected. "
-                                        "Cancelling cable progression action");
+        RCLCPP_ERROR(this->get_logger(),
+                     "%s Follow path request rejected. "
+                     "Cancelling cable progression action",
+                     robot_utils::log::get_robot_prefix(robot_name).c_str());
         goal_handle->abort(result);
       }
 
@@ -475,8 +484,9 @@ void CableActionPlanner::execute_next_cable_progress_step(
       if (max_attempts_reached) {
         RCLCPP_ERROR(
             this->get_logger(),
-            "Could not find a way to perform cable progression action after "
-            "attempted fallbacks. Aborting...");
+            "%s Could not find a way to perform cable progression action after "
+            "attempted fallbacks. Aborting...",
+            robot_utils::log::get_robot_prefix(robot_name).c_str());
         goal_handle->abort(result);
         return;
       }
@@ -522,8 +532,8 @@ void CableActionPlanner::execute_next_cables_interlace_step(
     throw std::runtime_error(
         "Cannot read robot1 pose from tf in time for interlace planning");
   }
-  RCLCPP_INFO(this->get_logger(), "Robot1 pos read: (%f, %f)", robot1_pos.x,
-              robot1_pos.y);
+  RCLCPP_DEBUG(this->get_logger(), "Robot1 pos read: (%f, %f)", robot1_pos.x,
+               robot1_pos.y);
 
   // Read robot1's pose with timeout
   robot_utils::geometry::Coords<double> robot2_pos;
@@ -534,12 +544,12 @@ void CableActionPlanner::execute_next_cables_interlace_step(
     throw std::runtime_error(
         "Cannot read robot2 pose from tf in time for interlace planning");
   }
-  RCLCPP_INFO(this->get_logger(), "Robot2 pos read: (%f, %f)", robot2_pos.x,
-              robot2_pos.y);
-  RCLCPP_INFO(this->get_logger(), "Robot1 exit: (%f, %f)", goal->exit_point1.x,
-              goal->exit_point1.y);
-  RCLCPP_INFO(this->get_logger(), "Robot2 exit: (%f, %f)", goal->exit_point2.x,
-              goal->exit_point2.y);
+  RCLCPP_DEBUG(this->get_logger(), "Robot2 pos read: (%f, %f)", robot2_pos.x,
+               robot2_pos.y);
+  RCLCPP_DEBUG(this->get_logger(), "Robot1 exit: (%f, %f)", goal->exit_point1.x,
+               goal->exit_point1.y);
+  RCLCPP_DEBUG(this->get_logger(), "Robot2 exit: (%f, %f)", goal->exit_point2.x,
+               goal->exit_point2.y);
 
   // Initialize state machine
   size_t step = 0;
@@ -660,8 +670,8 @@ void CableActionPlanner::execute_next_cables_interlace_step(
       break;
     }
     }
-    RCLCPP_INFO(this->get_logger(), "Hitch wp (%zu/3): (%f, %f)", step,
-                waypoint.x, waypoint.y);
+    RCLCPP_DEBUG(this->get_logger(), "Interlace wp (%zu/3): (%f, %f)", step,
+                 waypoint.x, waypoint.y);
 
     // Send async path planning request
     auto request = PathPlanningAction::Goal();
@@ -688,17 +698,20 @@ void CableActionPlanner::execute_next_cables_interlace_step(
 
     if (pp_goal_future.wait_for(pp_communication_timeout_limit) !=
         std::future_status::ready) {
-      RCLCPP_INFO(this->get_logger(),
-                  "Timeout waiting for path planning request "
-                  "to be accepted. Aborting cable interlace action");
+      RCLCPP_ERROR(
+          this->get_logger(),
+          "%s Timeout waiting for path planning request "
+          "to be accepted. Aborting cable interlace action",
+          robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
       goal_handle->abort(result);
     }
 
     auto pp_goal_handle = pp_goal_future.get();
     if (!pp_goal_handle) {
-      RCLCPP_INFO(
+      RCLCPP_ERROR(
           this->get_logger(),
-          "Path planning request rejected. Aborting cable interlace action");
+          "%s Path planning request rejected. Aborting cable interlace action",
+          robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
       goal_handle->abort(result);
     }
 
@@ -709,9 +722,11 @@ void CableActionPlanner::execute_next_cables_interlace_step(
     GoalHandlePathPlan::WrappedResult pp_wrapped_result;
 
     if (status == std::future_status::timeout) {
-      RCLCPP_INFO(this->get_logger(),
-                  "Timeout reached. Cancelling path planning "
-                  "goal. Will apply interlace fallback logic.");
+      RCLCPP_DEBUG(
+          this->get_logger(),
+          "%s Timeout reached. Cancelling path planning "
+          "goal. Will apply interlace fallback logic.",
+          robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
       auto cancel_future =
           path_planning_client_ptr_->async_cancel_goal(pp_goal_handle);
       if (cancel_future.wait_for(pp_communication_timeout_limit) ==
@@ -720,18 +735,24 @@ void CableActionPlanner::execute_next_cables_interlace_step(
 
         if (cancel_response->return_code !=
             action_msgs::srv::CancelGoal_Response::ERROR_NONE) {
-          RCLCPP_WARN(this->get_logger(),
-                      "Path planning server rejected the cancel request!");
+          RCLCPP_WARN(
+              this->get_logger(),
+              "%s Path planning server rejected the cancel request!",
+              robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
         } else {
           RCLCPP_INFO(
               this->get_logger(),
-              "Path planning server acknowledged cancel request. Waiting for "
-              "termination...");
+              "%s Path planning server acknowledged cancel request. "
+              "Waiting for "
+              "termination...",
+              robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
         }
       } else {
-        RCLCPP_ERROR(this->get_logger(),
-                     "Path planning server failed to acknowledge cancel "
-                     "request. It might be dead.");
+        RCLCPP_WARN(
+            this->get_logger(),
+            "%s Path planning server failed to acknowledge cancel "
+            "request. It might be dead.",
+            robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
       }
     } else if (status == std::future_status::ready) {
       pp_wrapped_result = result_future.get();
@@ -757,16 +778,20 @@ void CableActionPlanner::execute_next_cables_interlace_step(
               action_goal, opts);
       if (fp_handle_future.wait_for(fp_communication_timeout_limit) !=
           std::future_status::ready) {
-        RCLCPP_INFO(this->get_logger(),
-                    "Timeout waiting for follow path request "
-                    "to be accepted. Aborting cable interlace action");
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "%s Timeout waiting for follow path request "
+            "to be accepted. Aborting cable interlace action",
+            robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
         goal_handle->abort(result);
       }
       auto fp_goal_handle = fp_handle_future.get();
       if (!fp_goal_handle) {
-        RCLCPP_INFO(
+        RCLCPP_ERROR(
             this->get_logger(),
-            "Follow path request rejected. Cancelling cable interlace action");
+            "%s Follow path request rejected. Cancelling cable "
+            "interlace action",
+            robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
         goal_handle->abort(result);
       }
 
@@ -808,10 +833,11 @@ void CableActionPlanner::execute_next_cables_interlace_step(
           interlace_circle_attempts++;
           reverse_circle = false;
         } else {
-          RCLCPP_INFO(
+          RCLCPP_ERROR(
               this->get_logger(),
-              "Could not find a way to perform cable interlace action after "
-              "attempted fallbacks. Aborting...");
+              "%s Could not find a way to perform cable interlace action after "
+              "attempted fallbacks. Aborting...",
+              robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
           goal_handle->abort(result);
         }
         break;
@@ -826,9 +852,9 @@ void CableActionPlanner::execute_next_cables_interlace_step(
         break;
       }
       step = updated_step;
-      RCLCPP_INFO(
+      RCLCPP_DEBUG(
           this->get_logger(),
-          "%s will try to repeat the last action step with modified "
+          "%s will try to repeat the last interlace action step with modified "
           "variables.",
           robot_utils::log::get_robot_prefix(moving_robot_name).c_str());
     }

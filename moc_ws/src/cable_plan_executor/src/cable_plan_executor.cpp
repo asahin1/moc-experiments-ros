@@ -1,6 +1,8 @@
 // Standard libraries
+#include <algorithm>
 #include <fstream>
 #include <rclcpp/duration.hpp>
+#include <rclcpp/logging.hpp>
 
 // Third-party
 #include "nlohmann/json.hpp"
@@ -306,7 +308,7 @@ void CablePlanExecutor::send_next_goal(size_t cable_id) {
                                                    action.end))
               .c_str(),
           current_act_idx_on_plan, joint_plan_[cable_id].size());
-      RCLCPP_INFO(
+      RCLCPP_DEBUG(
           this->get_logger(),
           "%s %s Sending action request (%zu/%zu) - cables interlace action",
           robot_utils::log::get_cable_prefix(cables_[coop_cable_id]).c_str(),
@@ -344,7 +346,7 @@ void CablePlanExecutor::cable_progress_goal_response_callback(
         robot_utils::log::get_robot_prefix(front_end_robot_names_[cable_id])
             .c_str());
   } else {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
         this->get_logger(),
         "%s %s Cable Progress Goal accepted by server, waiting for result",
         robot_utils::log::get_cable_prefix(cables_[cable_id]).c_str(),
@@ -357,7 +359,7 @@ void CablePlanExecutor::cable_progress_feedback_callback(
     GoalHandleProgress::SharedPtr,
     const std::shared_ptr<const CableProgressAction::Feedback> feedback,
     size_t cable_id) {
-  RCLCPP_INFO(
+  RCLCPP_DEBUG(
       this->get_logger(), "%s %s Feedback received. Remaining waypoints: %d",
       robot_utils::log::get_cable_prefix(cables_[cable_id]).c_str(),
       robot_utils::log::get_robot_prefix(front_end_robot_names_[cable_id])
@@ -416,7 +418,7 @@ void CablePlanExecutor::cables_interlace_goal_response_callback(
         robot_utils::log::get_cable_prefix(cables_[cable_id1]).c_str(),
         robot_utils::log::get_cable_prefix(cables_[cable_id2]).c_str());
   } else {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
         this->get_logger(),
         "%s-%s Cables Interlace Goal accepted by server, waiting for result",
         robot_utils::log::get_cable_prefix(cables_[cable_id1]).c_str(),

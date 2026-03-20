@@ -372,8 +372,10 @@ PathPlanner::handle_goal(const rclcpp_action::GoalUUID &uuid,
 
 rclcpp_action::CancelResponse PathPlanner::handle_cancel(
     const std::shared_ptr<PathPlanningGoalHandle> goal_handle) {
+  std::string robot_name = goal_handle->get_goal()->robot_name;
   RCLCPP_INFO(this->get_logger(),
-              "Received request to cancel path plan action");
+              "%s Received request to cancel path plan action",
+              robot_utils::log::get_robot_prefix(robot_name).c_str());
   (void)goal_handle;
   return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -382,7 +384,9 @@ void PathPlanner::handle_accepted(
     const std::shared_ptr<PathPlanningGoalHandle> goal_handle) {
   std::lock_guard<std::mutex> lock(thread_mutex_);
   const auto goal_id = goal_handle->get_goal_id();
-  RCLCPP_INFO(this->get_logger(), "Executing path plan action");
+  std::string robot_name = goal_handle->get_goal()->robot_name;
+  RCLCPP_INFO(this->get_logger(), "%s Executing path plan action",
+              robot_utils::log::get_robot_prefix(robot_name).c_str());
   active_threads_[goal_id] =
       std::thread(std::bind(&PathPlanner::execute, this, std::placeholders::_1),
                   goal_handle);
@@ -420,7 +424,8 @@ void PathPlanner::execute(
   }
   if (goal_handle->is_canceling()) {
     // Case A: The library stopped because the ACTION was canceled
-    RCLCPP_INFO(this->get_logger(), "Goal Canceled by Client");
+    RCLCPP_INFO(this->get_logger(), "%s Goal Canceled by Client",
+                robot_utils::log::get_robot_prefix(robot_name).c_str());
     result->success = false;
     result->message = "USER_CANCELED";
     goal_handle->canceled(result);
@@ -478,6 +483,8 @@ bool PathPlanner::prep_planning_problem(
     msg = "Failed to get planning robot transform.";
     return false;
   }
+  RCLCPP_DEBUG(this->get_logger(), "This robot: %s, other robot: %s",
+               robot_name.c_str(), other_robot_name.c_str());
 
   // Get poses of other robots from tf and store them in the environment
   // object
@@ -485,8 +492,7 @@ bool PathPlanner::prep_planning_problem(
   for (const auto &orn : robot_names_) {
     if (orn == robot_name) {
       continue;
-    }
-    if (orn == other_robot_name) {
+    } else if (orn == other_robot_name) {
       robot_utils::geometry::Pose2D other_robot_pose;
       bool other_robot_pose_read = tf_wrapper_->lookup_2D_pose_with_timeout(
           target_frame_, orn, other_robot_pose, robot_pose_timeout);
@@ -586,6 +592,9 @@ bool PathPlanner::plan_path(
     return robot_utils::geometry::euclideanDistance2D(n, goal);
   };
 
+  RCLCPP_INFO(this->get_logger(), "%s Planning",
+              robot_utils::log::get_robot_prefix(robot_name).c_str());
+
   RCLCPP_DEBUG(this->get_logger(),
                "%s Planning from (%d, %d) to (%d, %d) - image coords",
                robot_utils::log::get_robot_prefix(robot_name).c_str(), start.x,
@@ -649,6 +658,9 @@ bool PathPlanner::plan_homotopy_path(
   auto euclidean_heuristic = [&](const HPlanningNode &n) {
     return robot_utils::geometry::euclideanDistance2D(n.coords, goal);
   };
+
+  RCLCPP_INFO(this->get_logger(), "%s H-Planning",
+              robot_utils::log::get_robot_prefix(robot_name).c_str());
 
   RCLCPP_DEBUG(
       this->get_logger(),

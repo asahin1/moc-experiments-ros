@@ -132,7 +132,7 @@ class FeedbackLinearizationController(Node):
                 to_frame_rel, from_frame_rel, rclpy.time.Time()
             )
         except TransformException as ex:
-            self.get_logger().debug(
+            self.get_logger().warn(
                 f"Could not transform {from_frame_rel} to {to_frame_rel}: {ex}"
             )
             return None
@@ -258,7 +258,7 @@ class FeedbackLinearizationController(Node):
         self.goal_position = np.array(
             [self.path_raw[-1].point.x, self.path_raw[-1].point.y]
         )
-        self.get_logger().info(f"Goal position: {self.goal_position}")
+        self.get_logger().debug(f"Goal position: {self.goal_position}")
         # Splines and path parameterization
         self.setup_splines()
 
