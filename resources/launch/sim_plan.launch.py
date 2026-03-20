@@ -12,77 +12,79 @@ def load_robot_names_from_yaml(yaml_path):
         data = yaml.safe_load(f)
     data = data.get("setups", {})
     data_sim = data.get("simulation", {})
-    first_end_robot_names = data_sim.get("first_end_robot_names", [])
-    last_end_robot_names = data_sim.get("last_end_robot_names", [])
-    if len(first_end_robot_names) != len(last_end_robot_names):
-        raise ValueError("First and last end robot numbers should match")
+    rear_end_robot_names = data_sim.get("rear_end_robot_names", [])
+    front_end_robot_names = data_sim.get("front_end_robot_names", [])
+    if len(rear_end_robot_names) != len(front_end_robot_names):
+        raise ValueError(
+            f"There should be as many rear and robots as there are front end robots. Rear end: {len(rear_end_robot_names)}, Front end: {len(front_end_robot_names)}"
+        )
     return {
-        "first_end_robot_names": first_end_robot_names,
-        "last_end_robot_names": last_end_robot_names,
+        "rear_end_robot_names": rear_end_robot_names,
+        "front_end_robot_names": front_end_robot_names,
     }
 
 
 def generate_launch_description():
     ld = LaunchDescription()
 
+    # Parse robot names
     robot_names_file_path = "resources/config/robot_names.yaml"
     robot_names = load_robot_names_from_yaml(robot_names_file_path)
     import json
 
     all_robot_names = (
-        robot_names["first_end_robot_names"] + robot_names["last_end_robot_names"]
+        robot_names["rear_end_robot_names"] + robot_names["front_end_robot_names"]
     )
-    first_end_robot_names_as_string = json.dumps(robot_names["first_end_robot_names"])
-    last_end_robot_names_as_string = json.dumps(robot_names["last_end_robot_names"])
+    rear_end_robot_names_as_string = json.dumps(robot_names["rear_end_robot_names"])
+    front_end_robot_names_as_string = json.dumps(robot_names["front_end_robot_names"])
     combined_robot_names_as_string = json.dumps(all_robot_names)
-
     robot_names_launch_arg = list(
         {
-            "first_end_robot_names": first_end_robot_names_as_string,
-            "last_end_robot_names": last_end_robot_names_as_string,
+            "rear_end_robot_names": rear_end_robot_names_as_string,
+            "front_end_robot_names": front_end_robot_names_as_string,
         }.items()
     )
     combined_robot_names_launch_arg = list(
         {"robot_names": combined_robot_names_as_string}.items()
     )
-    print(robot_names_launch_arg)
-    print(combined_robot_names_launch_arg)
+
+    # For individual robot configs
     robot_config_file_launch_arg = list(
         {"robot_config_file": "resources/config/robot_configs.yaml"}.items()
     )
+
+    # For general simulation configs
     config_file_launch_arg = list(
         {"config_file": "resources/config/sim_config.yaml"}.items()
     )
+
+    # Simulation config
     rviz_file_launch_arg = list({"rviz_file": "resources/rviz/sim_plan.rviz"}.items())
 
+    # Launch directories
     model_launch_dir = PathJoinSubstitution(
         [FindPackageShare("car_model_py"), "launch"]
     )
-
     mocap_launch_dir = PathJoinSubstitution(
         [FindPackageShare("mocap_sim_tf2_cpp"), "launch"]
     )
-
     controller_launch_dir = PathJoinSubstitution(
         [FindPackageShare("feedback_linearization_controller"), "launch"]
     )
-
     cable_plan_executor_launch_dir = PathJoinSubstitution(
         [FindPackageShare("cable_plan_executor"), "launch"]
     )
-
     cable_action_planner_launch_dir = PathJoinSubstitution(
         [FindPackageShare("cable_action_planner"), "launch"]
     )
-
     path_planner_launch_dir = PathJoinSubstitution(
         [FindPackageShare("path_planner"), "launch"]
     )
-
     robot_visualizer_launch_dir = PathJoinSubstitution(
         [FindPackageShare("robot_visualizer"), "launch"]
     )
 
+    # Per robot nodes
     for robot_name in all_robot_names:
         ld.add_action(
             GroupAction(
@@ -129,7 +131,7 @@ def generate_launch_description():
             )
         )
 
-    # For all robots
+    # Common nodes
     ld.add_action(
         IncludeLaunchDescription(
             PathJoinSubstitution([mocap_launch_dir, "mocap_sim_tf2.launch.py"]),

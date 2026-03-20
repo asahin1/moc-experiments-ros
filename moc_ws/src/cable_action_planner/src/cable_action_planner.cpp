@@ -28,10 +28,10 @@ namespace cable_action_planner {
 CableActionPlanner::CableActionPlanner() : Node("cable_action_planner") {
   // Declare parameters
   n_threads_ = this->declare_parameter<int>("n_threads", 4);
-  first_end_robot_names_ = this->declare_parameter<std::vector<std::string>>(
-      "first_end_robot_names", std::vector<std::string>{});
-  last_end_robot_names_ = this->declare_parameter<std::vector<std::string>>(
-      "last_end_robot_names", std::vector<std::string>{});
+  rear_end_robot_names_ = this->declare_parameter<std::vector<std::string>>(
+      "rear_end_robot_names", std::vector<std::string>{});
+  front_end_robot_names_ = this->declare_parameter<std::vector<std::string>>(
+      "front_end_robot_names", std::vector<std::string>{});
   server_timeout_duration_ =
       this->declare_parameter<double>("server_timeout", 5.0);
   tf_timeout_duration_ = this->declare_parameter<double>("tf_timeout", 5.0);
@@ -41,48 +41,52 @@ CableActionPlanner::CableActionPlanner() : Node("cable_action_planner") {
       "target_frame", ""); // Follow path frame_id
 
   robot_radius_ = this->declare_parameter<double>("robot_radius", 0.15);
-  move_last_wp_fallback_scale_default_ = this->declare_parameter<double>(
-      "move_last_wp_fallback_scale_default", 0.15);
-  move_last_wp_fallback_scale_step_ =
-      this->declare_parameter<double>("move_last_wp_fallback_scale_step", 0.15);
-  move_last_wp_fallback_scale_max_ =
-      this->declare_parameter<double>("move_last_wp_fallback_scale_max", 0.5);
-  move_last_wp_fallback_attempts_max_ =
-      this->declare_parameter<int>("move_last_wp_fallback_attempts_max", 5);
-  move_replan_attempts_max_ =
-      this->declare_parameter<int>("move_replan_attempts_max", 5);
-  hitch_circle_fallback_default_ =
-      this->declare_parameter<double>("hitch_circle_fallback_default", 0.15);
-  hitch_circle_fallback_step_ =
-      this->declare_parameter<double>("hitch_circle_fallback_step", 0.15);
-  hitch_circle_fallback_max_attempts_ =
-      this->declare_parameter<int>("hitch_circle_fallback_max_attempts", 5);
-  hitch_move_away_fallback_scale_default_ = this->declare_parameter<double>(
-      "hitch_move_away_fallback_scale_default", 0.15);
-  hitch_move_away_fallback_scale_step_ = this->declare_parameter<double>(
-      "hitch_move_away_fallback_scale_step", 0.15);
-  hitch_move_away_fallback_scale_max_ = this->declare_parameter<double>(
-      "hitch_move_away_fallback_scale_max", 0.15);
-  hitch_move_away_fallback_attempts_max_ =
-      this->declare_parameter<int>("hitch_move_away_fallback_attempts_max", 5);
+  progress_last_wp_fallback_scale_default_ = this->declare_parameter<double>(
+      "progress_last_wp_fallback_scale_default", 0.15);
+  progress_last_wp_fallback_scale_step_ = this->declare_parameter<double>(
+      "progress_last_wp_fallback_scale_step", 0.15);
+  progress_last_wp_fallback_scale_max_ = this->declare_parameter<double>(
+      "progress_last_wp_fallback_scale_max", 0.5);
+  progress_last_wp_fallback_attempts_max_ =
+      this->declare_parameter<int>("progress_last_wp_fallback_attempts_max", 5);
+  progress_replan_attempts_max_ =
+      this->declare_parameter<int>("progress_replan_attempts_max", 5);
+  interlace_circle_fallback_default_ = this->declare_parameter<double>(
+      "interlace_circle_fallback_default", 0.15);
+  interlace_circle_fallback_step_ =
+      this->declare_parameter<double>("interlace_circle_fallback_step", 0.15);
+  interlace_circle_fallback_max_attempts_ =
+      this->declare_parameter<int>("interlace_circle_fallback_max_attempts", 5);
+  interlace_move_away_fallback_scale_default_ = this->declare_parameter<double>(
+      "interlace_move_away_fallback_scale_default", 0.15);
+  interlace_move_away_fallback_scale_step_ = this->declare_parameter<double>(
+      "interlace_move_away_fallback_scale_step", 0.15);
+  interlace_move_away_fallback_attempts_max_ = this->declare_parameter<int>(
+      "interlace_move_away_fallback_attempts_max", 5);
+
+  // Timeout durations
+  communication_timeout_limit =
+      std::chrono::duration<double>(communication_timeout_duration_);
+  pp_timeout_limit =
+      std::chrono::duration<double>(path_planning_timeout_duration_);
 
   // Generate Cables vector
-  if (first_end_robot_names_.size() != last_end_robot_names_.size()) {
+  if (rear_end_robot_names_.size() != front_end_robot_names_.size()) {
     throw std::runtime_error(
-        "Attempting to use " + std::to_string(first_end_robot_names_.size()) +
-        " first end robots with " +
-        std::to_string(last_end_robot_names_.size()) + " last end robots. ");
+        "Attempting to use " + std::to_string(rear_end_robot_names_.size()) +
+        " rear end robots with " +
+        std::to_string(front_end_robot_names_.size()) + " front end robots. ");
   }
-  for (size_t i{0}; i < first_end_robot_names_.size(); ++i) {
+  for (size_t i{0}; i < rear_end_robot_names_.size(); ++i) {
     cables_.push_back(robot_utils::cable::Cable{"cable" + std::to_string(i),
-                                                first_end_robot_names_[i],
-                                                last_end_robot_names_[i]});
+                                                rear_end_robot_names_[i],
+                                                front_end_robot_names_[i]});
   }
-  for (size_t i{0}; i < first_end_robot_names_.size(); ++i) {
-    robot_names_.push_back(first_end_robot_names_[i]);
+  for (size_t i{0}; i < rear_end_robot_names_.size(); ++i) {
+    robot_names_.push_back(rear_end_robot_names_[i]);
   }
-  for (size_t i{0}; i < last_end_robot_names_.size(); ++i) {
-    robot_names_.push_back(last_end_robot_names_[i]);
+  for (size_t i{0}; i < front_end_robot_names_.size(); ++i) {
+    robot_names_.push_back(front_end_robot_names_[i]);
   }
 
   std::chrono::duration<double> timeout_duration(server_timeout_duration_);
@@ -113,24 +117,28 @@ CableActionPlanner::CableActionPlanner() : Node("cable_action_planner") {
   }
   RCLCPP_INFO(this->get_logger(), "Follow path action server found.");
 
-  this->cable_move_action_server_ptr_ =
-      rclcpp_action::create_server<CableMoveAction>(
-          this, "cable_move_action",
-          std::bind(&CableActionPlanner::handle_cable_move_goal, this, _1, _2),
-          std::bind(&CableActionPlanner::handle_cable_move_cancel, this, _1),
-          std::bind(&CableActionPlanner::handle_cable_move_accepted, this, _1));
-
-  this->cables_hitch_action_server_ptr_ =
-      rclcpp_action::create_server<CablesHitchAction>(
-          this, "cables_hitch_action",
-          std::bind(&CableActionPlanner::handle_cables_hitch_goal, this, _1,
+  this->cable_progress_action_server_ptr_ =
+      rclcpp_action::create_server<CableProgressAction>(
+          this, "cable_progress_action",
+          std::bind(&CableActionPlanner::handle_cable_progress_goal, this, _1,
                     _2),
-          std::bind(&CableActionPlanner::handle_cables_hitch_cancel, this, _1),
-          std::bind(&CableActionPlanner::handle_cables_hitch_accepted, this,
+          std::bind(&CableActionPlanner::handle_cable_progress_cancel, this,
+                    _1),
+          std::bind(&CableActionPlanner::handle_cable_progress_accepted, this,
+                    _1));
+
+  this->cables_interlace_action_server_ptr_ =
+      rclcpp_action::create_server<CablesInterlaceAction>(
+          this, "cables_interlace_action",
+          std::bind(&CableActionPlanner::handle_cables_interlace_goal, this, _1,
+                    _2),
+          std::bind(&CableActionPlanner::handle_cables_interlace_cancel, this,
+                    _1),
+          std::bind(&CableActionPlanner::handle_cables_interlace_accepted, this,
                     _1));
 
   RCLCPP_INFO(this->get_logger(),
-              "Cable Move and Hitch Action servers initialized.");
+              "Cable Progress and Interlace Action servers initialized.");
 }
 
 CableActionPlanner::~CableActionPlanner() {
@@ -169,30 +177,30 @@ CableActionPlanner::create_follow_path_action_goal(
 }
 
 // Action Server Callbacks
-rclcpp_action::GoalResponse CableActionPlanner::handle_cable_move_goal(
+rclcpp_action::GoalResponse CableActionPlanner::handle_cable_progress_goal(
     const rclcpp_action::GoalUUID &uuid,
-    std::shared_ptr<const CableMoveAction::Goal> goal) {
+    std::shared_ptr<const CableProgressAction::Goal> goal) {
   RCLCPP_INFO(
-      this->get_logger(), "%s Received Cable Move action request",
+      this->get_logger(), "%s Received Cable Progress action request",
       robot_utils::log::get_cable_prefix(cables_[goal->cable_id]).c_str());
   (void)uuid;
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse CableActionPlanner::handle_cable_move_cancel(
-    const std::shared_ptr<GoalHandleMove> goal_handle) {
+rclcpp_action::CancelResponse CableActionPlanner::handle_cable_progress_cancel(
+    const std::shared_ptr<GoalHandleProgress> goal_handle) {
   auto goal = goal_handle->get_goal();
   size_t cable_id = goal->cable_id;
   RCLCPP_INFO(this->get_logger(),
-              "%s Received request to cancel Cable Move action",
+              "%s Received request to cancel Cable Progress action",
               robot_utils::log::get_cable_prefix(cables_[cable_id]).c_str());
-  std::string robot_name = last_end_robot_names_[cable_id];
+  std::string robot_name = front_end_robot_names_[cable_id];
   follow_path_action_client_ptrs_[robot_name]->async_cancel_all_goals();
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void CableActionPlanner::handle_cable_move_accepted(
-    const std::shared_ptr<GoalHandleMove> goal_handle) {
+void CableActionPlanner::handle_cable_progress_accepted(
+    const std::shared_ptr<GoalHandleProgress> goal_handle) {
   std::lock_guard<std::mutex> lock(thread_mutex_);
   const auto goal_id = goal_handle->get_goal_id();
   // this needs to return quickly to avoid blocking the executor
@@ -201,32 +209,33 @@ void CableActionPlanner::handle_cable_move_accepted(
               robot_utils::log::get_cable_prefix(
                   cables_[goal_handle->get_goal()->cable_id])
                   .c_str());
-  active_threads_[goal_id] =
-      std::thread(std::bind(&CableActionPlanner::execute_next_cable_move_step,
-                            this, std::placeholders::_1),
-                  goal_handle);
+  active_threads_[goal_id] = std::thread(
+      std::bind(&CableActionPlanner::execute_next_cable_progress_step, this,
+                std::placeholders::_1),
+      goal_handle);
 }
 
-rclcpp_action::GoalResponse CableActionPlanner::handle_cables_hitch_goal(
+rclcpp_action::GoalResponse CableActionPlanner::handle_cables_interlace_goal(
     const rclcpp_action::GoalUUID &uuid,
-    std::shared_ptr<const CablesHitchAction::Goal> goal) {
+    std::shared_ptr<const CablesInterlaceAction::Goal> goal) {
   RCLCPP_INFO(
-      this->get_logger(), "%s-%s Received Cables Hitch action request",
+      this->get_logger(), "%s-%s Received Cables Interlace action request",
       robot_utils::log::get_cable_prefix(cables_[goal->cable_id1]).c_str(),
       robot_utils::log::get_cable_prefix(cables_[goal->cable_id2]).c_str());
   (void)uuid;
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse CableActionPlanner::handle_cables_hitch_cancel(
-    const std::shared_ptr<GoalHandleHitch> goal_handle) {
+rclcpp_action::CancelResponse
+CableActionPlanner::handle_cables_interlace_cancel(
+    const std::shared_ptr<GoalHandleInterlace> goal_handle) {
   auto goal = goal_handle->get_goal();
   size_t cable_id1 = goal->cable_id1;
   size_t cable_id2 = goal->cable_id2;
   auto cable_end1 = static_cast<robot_utils::cable::CableEnd>(goal->cable_end1);
   auto cable_end2 = static_cast<robot_utils::cable::CableEnd>(goal->cable_end2);
   RCLCPP_INFO(this->get_logger(),
-              "%s-%s Received request to cancel Cables Hitch action",
+              "%s-%s Received request to cancel Cables Interlace action",
               robot_utils::log::get_cable_prefix(cables_[cable_id1]).c_str(),
               robot_utils::log::get_cable_prefix(cables_[cable_id2]).c_str());
   std::string robot1_name =
@@ -238,55 +247,48 @@ rclcpp_action::CancelResponse CableActionPlanner::handle_cables_hitch_cancel(
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void CableActionPlanner::handle_cables_hitch_accepted(
-    const std::shared_ptr<GoalHandleHitch> goal_handle) {
+void CableActionPlanner::handle_cables_interlace_accepted(
+    const std::shared_ptr<GoalHandleInterlace> goal_handle) {
   std::lock_guard<std::mutex> lock(thread_mutex_);
   const auto goal_id = goal_handle->get_goal_id();
   // this needs to return quickly to avoid blocking the executor
   auto goal = goal_handle->get_goal();
   size_t cable_id1 = goal->cable_id1;
   size_t cable_id2 = goal->cable_id2;
-  RCLCPP_INFO(this->get_logger(), "%s-%s Cables Hitch action request accepted.",
+  RCLCPP_INFO(this->get_logger(),
+              "%s-%s Cables Interlace action request accepted.",
               robot_utils::log::get_cable_prefix(cables_[cable_id1]).c_str(),
               robot_utils::log::get_cable_prefix(cables_[cable_id2]).c_str());
-  active_threads_[goal_id] =
-      std::thread(std::bind(&CableActionPlanner::execute_next_cables_hitch_step,
-                            this, std::placeholders::_1),
-                  goal_handle);
+  active_threads_[goal_id] = std::thread(
+      std::bind(&CableActionPlanner::execute_next_cables_interlace_step, this,
+                std::placeholders::_1),
+      goal_handle);
 }
 
 // Main Logic (Planning for Actions)
 
-void CableActionPlanner::execute_next_cable_move_step(
-    const std::shared_ptr<GoalHandleMove> goal_handle) {
+void CableActionPlanner::execute_next_cable_progress_step(
+    const std::shared_ptr<GoalHandleProgress> goal_handle) {
   // Read goal info
   auto goal = goal_handle->get_goal();
-  std::string robot_name = last_end_robot_names_[goal->cable_id];
+  std::string robot_name = front_end_robot_names_[goal->cable_id];
   std::vector<geometry_msgs::msg::Point> waypoints = goal->waypoints;
 
   // Initialize state machine
   size_t index = 1; // 0-th waypoint is the current point so we can start from 1
-  double move_last_wp_fallback = move_last_wp_fallback_scale_default_;
-  int move_last_wp_fallback_attempts = 0;
-  int move_replan_attempts = 0;
+  double progress_last_wp_fallback = progress_last_wp_fallback_scale_default_;
+  int progress_last_wp_fallback_attempts = 0;
+  int progress_replan_attempts = 0;
 
   // Initialize emtpy result and feedback
-  auto result = std::make_shared<CableMoveAction::Result>();
-  auto feedback = std::make_shared<CableMoveAction::Feedback>();
-
-  // Timeouts
-  std::chrono::duration<double> pp_communication_timeout_limit(
-      path_planning_timeout_duration_);
-  std::chrono::duration<double> pp_timeout_limit(
-      path_planning_timeout_duration_);
-  std::chrono::duration<double> fp_communication_timeout_limit(
-      path_planning_timeout_duration_);
+  auto result = std::make_shared<CableProgressAction::Result>();
+  auto feedback = std::make_shared<CableProgressAction::Feedback>();
 
   // Execution loop
   while (index < waypoints.size() && rclcpp::ok()) {
     // Check cancellation
     if (goal_handle->is_canceling()) {
-      RCLCPP_INFO(this->get_logger(), "%s Cable Move action cancelling.",
+      RCLCPP_INFO(this->get_logger(), "%s Cable Progress action cancelling.",
                   robot_utils::log::get_robot_prefix(robot_name).c_str());
       goal_handle->canceled(result);
       return;
@@ -308,8 +310,8 @@ void CableActionPlanner::execute_next_cable_move_step(
                                                     prev_wp_geo.y};
       robot_utils::geometry::Coords<double> v = prev_wp - last_wp;
       double scale =
-          std::min(move_last_wp_fallback_scale_max_,
-                   move_last_wp_fallback * robot_radius_ / v.length());
+          std::min(progress_last_wp_fallback_scale_max_,
+                   progress_last_wp_fallback * robot_radius_ / v.length());
       last_wp = last_wp + v * scale;
       goal_pt.x = last_wp.x;
       goal_pt.y = last_wp.y;
@@ -437,29 +439,38 @@ void CableActionPlanner::execute_next_cable_move_step(
         index++;
       }
     } else {
+      bool max_attempts_reached = false;
       if (index == waypoints.size() - 1) {
-        if (move_last_wp_fallback_attempts <
-            move_last_wp_fallback_attempts_max_) {
-          move_last_wp_fallback += move_last_wp_fallback_scale_step_;
-          move_last_wp_fallback_attempts++;
-          RCLCPP_INFO(this->get_logger(),
-                      "%s will try to repeat the last progression action step "
-                      "with modified "
-                      "move_last_wp_fallback: %f,  (%d/%d attempts).",
-                      robot_utils::log::get_robot_prefix(robot_name).c_str(),
-                      move_last_wp_fallback, move_last_wp_fallback_attempts,
-                      move_last_wp_fallback_attempts_max_);
+        if (progress_last_wp_fallback_attempts <
+            progress_last_wp_fallback_attempts_max_) {
+          progress_last_wp_fallback += progress_last_wp_fallback_scale_step_;
+          progress_last_wp_fallback_attempts++;
+          RCLCPP_DEBUG(this->get_logger(),
+                       "%s will try to repeat the last progression action step "
+                       "with modified "
+                       "progress_last_wp_fallback: %f,  (%d/%d attempts).",
+                       robot_utils::log::get_robot_prefix(robot_name).c_str(),
+                       progress_last_wp_fallback,
+                       progress_last_wp_fallback_attempts,
+                       progress_last_wp_fallback_attempts_max_);
+        } else {
+          max_attempts_reached = true;
         }
-      } else if (move_replan_attempts < move_replan_attempts_max_) {
-        move_replan_attempts++;
-        RCLCPP_INFO(
-            this->get_logger(),
-            "%s will try to replan for the last progression action step,  "
-            "(%d/%d attempts).",
-            robot_utils::log::get_robot_prefix(robot_name).c_str(),
-            move_replan_attempts, move_replan_attempts_max_);
       } else {
-        RCLCPP_INFO(
+        if (progress_replan_attempts < progress_replan_attempts_max_) {
+          progress_replan_attempts++;
+          RCLCPP_DEBUG(
+              this->get_logger(),
+              "%s will try to replan for the last progression action step,  "
+              "(%d/%d attempts).",
+              robot_utils::log::get_robot_prefix(robot_name).c_str(),
+              progress_replan_attempts, progress_replan_attempts_max_);
+        } else {
+          max_attempts_reached = true;
+        }
+      }
+      if (max_attempts_reached) {
+        RCLCPP_ERROR(
             this->get_logger(),
             "Could not find a way to perform cable progression action after "
             "attempted fallbacks. Aborting...");
@@ -478,8 +489,8 @@ void CableActionPlanner::execute_next_cable_move_step(
   }
 }
 
-void CableActionPlanner::execute_next_cables_hitch_step(
-    const std::shared_ptr<GoalHandleHitch> goal_handle) {
+void CableActionPlanner::execute_next_cables_interlace_step(
+    const std::shared_ptr<GoalHandleInterlace> goal_handle) {
   // Read goal info
   auto goal = goal_handle->get_goal();
   std::string robot1_name = robot_utils::cable::get_robot_at_end(
@@ -506,7 +517,7 @@ void CableActionPlanner::execute_next_cables_hitch_step(
   if (!robot1_pose_read) {
     RCLCPP_ERROR(this->get_logger(), "Timeout while waiting for transform");
     throw std::runtime_error(
-        "Cannot read robot1 pose from tf in time for hitch planning");
+        "Cannot read robot1 pose from tf in time for interlace planning");
   }
   RCLCPP_INFO(this->get_logger(), "Robot1 pos read: (%f, %f)", robot1_pos.x,
               robot1_pos.y);
@@ -518,7 +529,7 @@ void CableActionPlanner::execute_next_cables_hitch_step(
   if (!robot2_pose_read) {
     RCLCPP_ERROR(this->get_logger(), "Timeout while waiting for transform");
     throw std::runtime_error(
-        "Cannot read robot2 pose from tf in time for hitch planning");
+        "Cannot read robot2 pose from tf in time for interlace planning");
   }
   RCLCPP_INFO(this->get_logger(), "Robot2 pos read: (%f, %f)", robot2_pos.x,
               robot2_pos.y);
@@ -529,20 +540,22 @@ void CableActionPlanner::execute_next_cables_hitch_step(
 
   // Initialize state machine
   size_t step = 0;
-  double hitch_circle_fallback = hitch_circle_fallback_default_;
-  double hitch_move_away_fallback = hitch_move_away_fallback_scale_default_;
-  int hitch_circle_attempts = 0;
-  int hitch_move_away_attempts = 0;
+  double interlace_circle_fallback = interlace_circle_fallback_default_;
+  double interlace_move_away_fallback =
+      interlace_move_away_fallback_scale_default_;
+  int interlace_circle_attempts = 0;
+  int interlace_move_away_attempts = 0;
   bool reverse_circle = false;
 
   // Initialize empty result and feedback
-  auto result = std::make_shared<CablesHitchAction::Result>();
-  auto feedback = std::make_shared<CablesHitchAction::Feedback>();
+  auto result = std::make_shared<CablesInterlaceAction::Result>();
+  auto feedback = std::make_shared<CablesInterlaceAction::Feedback>();
 
   while (step < 4 && rclcpp::ok()) {
     // Check cancellation
     if (goal_handle->is_canceling()) {
-      RCLCPP_INFO(this->get_logger(), "%s-%s Cables Hitch action cancelling.",
+      RCLCPP_INFO(this->get_logger(),
+                  "%s-%s Cables Interlace action cancelling.",
                   robot_utils::log::get_robot_prefix(robot1_name).c_str(),
                   robot_utils::log::get_robot_prefix(robot2_name).c_str());
       goal_handle->canceled(result);
@@ -550,11 +563,11 @@ void CableActionPlanner::execute_next_cables_hitch_step(
     }
 
     // Action feedback
-    feedback->current_hitch_step = step;
+    feedback->current_interlace_step = step;
     goal_handle->publish_feedback(feedback);
 
-    // 3 Steps to the hitch: 1) robot2 rotates around robot1 (path to the same
-    // point with some signature) 2) robot1 crosses over, 3) robot2 crosses
+    // 3 Steps to the interlace: 1) robot2 rotates around robot1 (path to the
+    // same point with some signature) 2) robot1 crosses over, 3) robot2 crosses
     // over
 
     // Switch logic should determine the moving_robot_name and the waypoint
@@ -576,14 +589,15 @@ void CableActionPlanner::execute_next_cables_hitch_step(
     if (signed_angle > 0) {
       rotation_dir = -1;
     }
-    double move_away_scale1 = hitch_move_away_fallback;
-    double move_away_scale2 = hitch_move_away_fallback;
+    double move_away_scale1 = interlace_move_away_fallback;
+    double move_away_scale2 = interlace_move_away_fallback;
     int8_t h_sig{0};
     switch (step) {
     case 0:
       // Move robot1 in place (go back to this step in case of fallbacks)
       moving_robot_name = robot1_name;
-      waypoint = in_point1 + (vertex_coord - in_point1) * hitch_circle_fallback;
+      waypoint =
+          in_point1 + (vertex_coord - in_point1) * interlace_circle_fallback;
       break;
     case 1:
       if (reverse_circle) {
@@ -659,11 +673,12 @@ void CableActionPlanner::execute_next_cables_hitch_step(
     auto send_goal_options =
         rclcpp_action::Client<PathPlanningAction>::SendGoalOptions();
 
-    RCLCPP_INFO(this->get_logger(),
-                "%s Requesting path plan for hitch construction step (%zu/3) - "
-                "with other robot: %s",
-                robot_utils::log::get_robot_prefix(moving_robot_name).c_str(),
-                step, other_robot_name.c_str());
+    RCLCPP_DEBUG(
+        this->get_logger(),
+        "%s Requesting path plan for interlace construction step (%zu/3) - "
+        "with other robot: %s",
+        robot_utils::log::get_robot_prefix(moving_robot_name).c_str(), step,
+        other_robot_name.c_str());
 
     auto pp_goal_future =
         path_planning_client_ptr_->async_send_goal(request, send_goal_options);
@@ -784,9 +799,10 @@ void CableActionPlanner::execute_next_cables_hitch_step(
           [[fallthrough]];
         }
       case 0:
-        if (hitch_circle_attempts < hitch_circle_fallback_max_attempts_) {
-          hitch_circle_fallback += hitch_circle_fallback_step_;
-          hitch_circle_attempts++;
+        if (interlace_circle_attempts <
+            interlace_circle_fallback_max_attempts_) {
+          interlace_circle_fallback += interlace_circle_fallback_step_;
+          interlace_circle_attempts++;
           reverse_circle = false;
         } else {
           RCLCPP_INFO(
@@ -798,9 +814,11 @@ void CableActionPlanner::execute_next_cables_hitch_step(
         break;
       case 2:
       case 3:
-        if (hitch_move_away_attempts < hitch_move_away_fallback_attempts_max_) {
-          hitch_move_away_fallback += hitch_move_away_fallback_scale_step_;
-          hitch_move_away_attempts++;
+        if (interlace_move_away_attempts <
+            interlace_move_away_fallback_attempts_max_) {
+          interlace_move_away_fallback +=
+              interlace_move_away_fallback_scale_step_;
+          interlace_move_away_attempts++;
         }
         break;
       }
@@ -816,7 +834,7 @@ void CableActionPlanner::execute_next_cables_hitch_step(
   // Check if done
   if (rclcpp::ok()) {
     goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "%s-%s Cables Hitch Goal succeeded",
+    RCLCPP_INFO(this->get_logger(), "%s-%s Cables Interlace Goal succeeded",
                 robot_utils::log::get_robot_prefix(robot1_name).c_str(),
                 robot_utils::log::get_robot_prefix(robot2_name).c_str());
     return;

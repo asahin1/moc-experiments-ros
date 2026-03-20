@@ -9,7 +9,7 @@ cable_plan_executor:
     # plan_filepath: "resources/data/s5_m3.json"
     # plan_filepath: "resources/data/s6_m2.json"
     plan_filepath: "resources/data/processed_plans/s1_m3.json"
-    skip_hitches: False
+    skip_interlaces: False
     action_server_timeout: 5.0
 
 cable_action_planner:
@@ -17,18 +17,19 @@ cable_action_planner:
     n_threads: 4
     server_timeout: 5.0
     tf_timeout: 3.0
-    move_last_wp_fallback_scale_default: 2.0
-    move_last_wp_fallback_scale_step: 0.5
-    move_last_wp_fallback_scale_max: 0.5
-    move_last_wp_fallback_attempts_max: 5
-    move_replan_attempts_max : 5
-    hitch_circle_fallback_default: 0.5
-    hitch_circle_fallback_step: 0.1
-    hitch_circle_fallback_max_attempts: 5
-    hitch_move_away_fallback_scale_default: 5.0
-    hitch_move_away_fallback_scale_step: 0.5
-    hitch_move_away_fallback_scale_max: 1.0
-    hitch_move_away_fallback_attempts_max: 10
+    communication_timeout: 5.0
+    path_planner_timeout: 5.0
+    progress_last_wp_fallback_scale_default: 2.0
+    progress_last_wp_fallback_scale_step: 0.5
+    progress_last_wp_fallback_scale_max: 0.5
+    progress_last_wp_fallback_attempts_max: 5
+    progress_replan_attempts_max : 100
+    interlace_circle_fallback_default: 0.5
+    interlace_circle_fallback_step: 0.1
+    interlace_circle_fallback_max_attempts: 5
+    interlace_move_away_fallback_scale_default: 4.0
+    interlace_move_away_fallback_scale_step: 1.0
+    interlace_move_away_fallback_attempts_max: 6
 
 path_planner:
   ros__parameters:

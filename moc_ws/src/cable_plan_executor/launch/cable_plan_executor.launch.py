@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node, LifecycleNode
+from launch_ros.actions import LifecycleNode
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
@@ -9,19 +9,19 @@ import json
 
 
 def create_node(context):
-    first_end_robot_names_list = LaunchConfiguration("first_end_robot_names").perform(
+    rear_end_robot_names_list = LaunchConfiguration("rear_end_robot_names").perform(
         context
     )
-    last_end_robot_names_list = LaunchConfiguration("last_end_robot_names").perform(
+    front_end_robot_names_list = LaunchConfiguration("front_end_robot_names").perform(
         context
     )
     config = LaunchConfiguration("config_file")
     try:
-        first_loaded_list = json.loads(first_end_robot_names_list)
-        last_loaded_list = json.loads(last_end_robot_names_list)
+        rear_loaded_list = json.loads(rear_end_robot_names_list)
+        first_loaded_list = json.loads(front_end_robot_names_list)
     except Exception:
+        rear_loaded_list = []
         first_loaded_list = []
-        last_loaded_list = []
     node = LifecycleNode(
         package="cable_plan_executor",
         executable="cable_plan_executor_node",
@@ -30,8 +30,8 @@ def create_node(context):
         parameters=[
             config,
             {
-                "first_end_robot_names": first_loaded_list,
-                "last_end_robot_names": last_loaded_list,
+                "rear_end_robot_names": rear_loaded_list,
+                "front_end_robot_names": first_loaded_list,
             },
         ],
     )
@@ -43,13 +43,13 @@ def generate_launch_description():
         get_package_share_directory("cable_plan_executor"), "config", "default.yaml"
     )
     config_file = DeclareLaunchArgument("config_file", default_value=default_config)
-    first_end_robot_names_arg = DeclareLaunchArgument("first_end_robot_names")
-    last_end_robot_names_arg = DeclareLaunchArgument("last_end_robot_names")
+    rear_end_robot_names_arg = DeclareLaunchArgument("rear_end_robot_names")
+    front_end_robot_names_arg = DeclareLaunchArgument("front_end_robot_names")
     return LaunchDescription(
         [
             config_file,
-            first_end_robot_names_arg,
-            last_end_robot_names_arg,
+            rear_end_robot_names_arg,
+            front_end_robot_names_arg,
             OpaqueFunction(function=create_node),
         ]
     )

@@ -5,9 +5,9 @@ namespace robot_utils::cable {
 ActionType action_type_from_char(const char ch) {
   switch (ch) {
   case 'm':
-    return ActionType::Move;
+    return ActionType::Progress;
   case 'h':
-    return ActionType::Hitch;
+    return ActionType::Interlace;
   default:
     throw std::runtime_error("Unsupported action type: " + std::string(1, ch));
   }
@@ -15,10 +15,10 @@ ActionType action_type_from_char(const char ch) {
 
 std::string get_robot_at_end(const Cable &cable, CableEnd end) {
   switch (end) {
-  case CableEnd::First:
-    return cable.first_end_robot;
-  case CableEnd::Last:
-    return cable.last_end_robot;
+  case CableEnd::Rear:
+    return cable.rear_end_robot;
+  case CableEnd::Front:
+    return cable.front_end_robot;
   default:
     throw std::runtime_error("Cable end unspecified");
   }
