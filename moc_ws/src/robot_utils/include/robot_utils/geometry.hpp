@@ -52,6 +52,12 @@ inline Coords<double> operator-(const Coords<CoordType1> &a,
   return res;
 }
 
+template <typename CoordType>
+inline Coords<double> operator-(const Coords<CoordType> &a) {
+        Coords<double> res{-a.x, -a.y};
+        return res;
+    }
+
 template <typename CoordType, typename ScaleType>
 inline Coords<CoordType> operator*(const Coords<CoordType> &a,
                                    const ScaleType &b) {
