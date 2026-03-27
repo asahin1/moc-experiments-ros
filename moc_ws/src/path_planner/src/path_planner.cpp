@@ -188,7 +188,7 @@ void PlanningGraph::update_h_sig(const HPlanningNode &n,
   }
   int dir{0};
   if (edge_crosses_h_ray(n.coords, tn.coords, other_robot_pose_h_sig.position,
-                         other_robot_pose_h_sig.heading, dir)) {
+                         -other_robot_pose_h_sig.heading, dir)) {
     tn.h_sig.back() += dir;
   }
 }
