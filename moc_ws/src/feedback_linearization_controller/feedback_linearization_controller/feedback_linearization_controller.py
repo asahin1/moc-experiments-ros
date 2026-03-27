@@ -294,6 +294,8 @@ class FeedbackLinearizationController(Node):
             if self.is_goal_reached(position):
                 self.get_logger().info("Goal reached successfully!")
                 self.stop_robot()
+                rate = self.create_rate(0.5)
+                rate.sleep()
                 goal_handle.succeed()
                 return result
 
