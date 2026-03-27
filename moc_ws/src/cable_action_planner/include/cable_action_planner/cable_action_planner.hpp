@@ -96,6 +96,9 @@ private:
   // Action plan variables
   std::vector<robot_utils::cable::Cable> cables_;
   std::vector<std::string> robot_names_;
+  std::unordered_map<std::string, robot_utils::geometry::Coords<double>>
+      robot_prev_cable_points_;
+  std::unordered_map<std::string, bool> is_cables_first_progression;
 
   // Action Request Generators
   FollowPathAction::Goal create_follow_path_action_goal(

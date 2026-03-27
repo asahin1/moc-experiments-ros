@@ -109,6 +109,8 @@ CableActionPlanner::CableActionPlanner() : Node("cable_action_planner") {
     follow_path_action_client_ptrs_.insert(
         {robot_names_[i], rclcpp_action::create_client<FollowPathAction>(
                               this, robot_names_[i] + "/follow_path_action")});
+    robot_prev_cable_points_.insert({robot_names_[i], robot_utils::geometry::Coords<double>{0.0, 0.0}});
+    is_cables_first_progression.insert({robot_names_[i], true});
   }
   RCLCPP_INFO(this->get_logger(), "Waiting for follow path action servers...");
   for (const auto &robot : robot_names_) {
@@ -283,6 +285,14 @@ void CableActionPlanner::execute_next_cable_progress_step(
   int progress_last_wp_fallback_attempts = 0;
   int progress_replan_attempts = 0;
 
+  // Only if it is the first progression, assign the rear robot's last cable point as the first waypoint (indexed 1)
+  if (is_cables_first_progression[robot_name]) {
+    robot_prev_cable_points_[rear_end_robot_names_[goal->cable_id]] = robot_utils::geometry::Coords<double>(waypoints[1].x, waypoints[1].y);
+    is_cables_first_progression[robot_name] = false;
+    is_cables_first_progression[rear_end_robot_names_[goal->cable_id]] = false;
+  }
+
+
   // Initialize emtpy result and feedback
   auto result = std::make_shared<CableProgressAction::Result>();
   auto feedback = std::make_shared<CableProgressAction::Feedback>();
@@ -320,6 +330,8 @@ void CableActionPlanner::execute_next_cable_progress_step(
       goal_pt.y = last_wp.y;
     } else {
       goal_pt = waypoints[index];
+      // Assign moving robots last cable point as the one before last waypoint
+      robot_prev_cable_points_[robot_name] = robot_utils::geometry::Coords<double>(goal_pt.x, goal_pt.y);
     }
 
     // Send async path planning request
@@ -535,7 +547,7 @@ void CableActionPlanner::execute_next_cables_interlace_step(
   RCLCPP_DEBUG(this->get_logger(), "Robot1 pos read: (%f, %f)", robot1_pos.x,
                robot1_pos.y);
 
-  // Read robot1's pose with timeout
+  // Read robot2's pose with timeout
   robot_utils::geometry::Coords<double> robot2_pos;
   bool robot2_pose_read = tf_wrapper_->lookup_2D_pos_with_timeout(
       target_frame_, robot2_name, robot2_pos, robot_pose_timeout);
@@ -550,6 +562,51 @@ void CableActionPlanner::execute_next_cables_interlace_step(
                goal->exit_point1.y);
   RCLCPP_DEBUG(this->get_logger(), "Robot2 exit: (%f, %f)", goal->exit_point2.x,
                goal->exit_point2.y);
+
+
+  robot_utils::geometry::Coords<double> prev_pt1;
+  robot_utils::geometry::Coords<double> prev_pt2;
+  // if it is robot's first progression front robot must be interlacing, we can use the rear robots position as the previous cable point
+  std::string rear_robot1_name_;
+  if(is_cables_first_progression[robot1_name]) {
+    assert(static_cast<robot_utils::cable::CableEnd>(goal->cable_end1) == robot_utils::cable::CableEnd::Front);
+    rear_robot1_name_ = rear_end_robot_names_[goal->cable_id1];
+    // Read rear_robot1's position with timeout
+    robot_utils::geometry::Coords<double> rear_robot1_pos;
+    bool rear_robot1_pose_read = tf_wrapper_->lookup_2D_pos_with_timeout(
+        target_frame_, rear_robot1_name_, rear_robot1_pos, robot_pose_timeout);
+    if (!rear_robot1_pose_read) {
+      RCLCPP_ERROR(this->get_logger(), "Timeout while waiting for transform");
+      throw std::runtime_error(
+          "Cannot read rear_robot1 pose from tf in time for interlace planning");
+    }
+    RCLCPP_DEBUG(this->get_logger(), "Rear Robot1 pos read: (%f, %f)", rear_robot1_pos.x,
+                rear_robot1_pos.y);
+    prev_pt1 = rear_robot1_pos;
+  }
+  else{
+    prev_pt1 = robot_prev_cable_points_[robot1_name];
+  }
+  std::string rear_robot2_name_;
+  if(is_cables_first_progression[robot2_name]) {
+    assert(static_cast<robot_utils::cable::CableEnd>(goal->cable_end2) == robot_utils::cable::CableEnd::Front);
+    rear_robot2_name_ = rear_end_robot_names_[goal->cable_id2];
+    // Read rear_robot2's pose with timeout
+    robot_utils::geometry::Coords<double> rear_robot2_pos;
+    bool rear_robot2_pose_read = tf_wrapper_->lookup_2D_pos_with_timeout(
+        target_frame_, rear_robot2_name_, rear_robot2_pos, robot_pose_timeout);
+    if (!rear_robot2_pose_read) {
+      RCLCPP_ERROR(this->get_logger(), "Timeout while waiting for transform");
+      throw std::runtime_error(
+          "Cannot read rear_robot2 pose from tf in time for interlace planning");
+    }
+    RCLCPP_DEBUG(this->get_logger(), "Rear Robot2 pos read: (%f, %f)", rear_robot2_pos.x,
+                rear_robot2_pos.y);
+    prev_pt2 = rear_robot2_pos;
+  }
+  else{
+    prev_pt2 = robot_prev_cable_points_[robot2_name];
+  }
 
   // Initialize state machine
   size_t step = 0;
@@ -596,8 +653,13 @@ void CableActionPlanner::execute_next_cables_interlace_step(
     robot_utils::geometry::Coords<double> vertex_coord{goal->vertex_coords.x,
                                                        goal->vertex_coords.y};
 
+
+    // double signed_angle = robot_utils::geometry::signed_angle(
+    //     in_point2 - in_point1, exit_point2 - in_point1);
+    // double signed_angle = robot_utils::geometry::signed_angle(
+    //     exit_point1 - in_point1, exit_point2 - in_point2);
     double signed_angle = robot_utils::geometry::signed_angle(
-        in_point2 - in_point1, exit_point2 - in_point1);
+        prev_pt2 - in_point2, prev_pt2 - in_point1);
     int rotation_dir = 1;
     if (signed_angle > 0) {
       rotation_dir = -1;
@@ -616,12 +678,20 @@ void CableActionPlanner::execute_next_cables_interlace_step(
       if (reverse_circle) {
         moving_robot_name = robot1_name;
         other_robot_name = robot2_name;
-        waypoint = in_point1;
+        robot_utils::geometry::Coords<double> v_out = prev_pt1 - robot2_pos;
+        robot_utils::geometry::Coords<double> v_between = in_point1 - robot2_pos;
+        double dist = v_between.length();
+        waypoint = robot2_pos + v_out.normalized() * dist;
+        // waypoint = in_point1;
         h_sig = -rotation_dir;
       } else {
         moving_robot_name = robot2_name;
         other_robot_name = robot1_name;
-        waypoint = in_point2;
+        robot_utils::geometry::Coords<double> v_out = prev_pt2 - robot1_pos;
+        robot_utils::geometry::Coords<double> v_between = in_point2 - robot1_pos;
+        double dist = v_between.length();
+        waypoint = robot1_pos + v_out.normalized() * dist;
+        // waypoint = in_point2;
         h_sig = rotation_dir;
       }
       break;
@@ -645,6 +715,7 @@ void CableActionPlanner::execute_next_cables_interlace_step(
         }
         waypoint = in_point1 + v_unit * scale;
       }
+      robot_prev_cable_points_[moving_robot_name] = waypoint;
       break;
     }
     case 3: {
@@ -667,6 +738,7 @@ void CableActionPlanner::execute_next_cables_interlace_step(
         }
         waypoint = in_point2 + v_unit * scale;
       }
+      robot_prev_cable_points_[moving_robot_name] = waypoint;
       break;
     }
     }
